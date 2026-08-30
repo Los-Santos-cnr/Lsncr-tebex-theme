@@ -8,9 +8,7 @@ export type RecentPurchase = {
   packageId?: number | null;
 };
 
-export function publicBuyerName(_raw?: string | null) {
-  return "Someone";
-}
+export const ANON_BUYER = "Someone";
 
 export function normalizePackageName(name: string) {
   return name.toLowerCase().replace(/\s+/g, " ").trim();

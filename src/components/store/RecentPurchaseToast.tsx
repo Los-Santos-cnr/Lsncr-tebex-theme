@@ -93,7 +93,7 @@ export function RecentPurchaseToast() {
         </span>
         <span className="min-w-0">
           <span className="block text-sm leading-snug text-foreground">
-            <strong className="font-semibold">Someone</strong> purchased{" "}
+            <strong className="font-semibold">{purchase.buyer}</strong> purchased{" "}
             {purchase.href ? (
               <Link
                 href={purchase.href}

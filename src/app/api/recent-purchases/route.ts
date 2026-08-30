@@ -5,27 +5,31 @@ import { db, ensureOrdersTable, isDatabaseConfigured } from "@/lib/db";
 import { isAdminApiConfigured, listPayments } from "@/lib/tebex-admin";
 import { getAllPackages, getSidebarRecentPayments, packageHref } from "@/lib/tebex";
 import type { TebexPackage } from "@/lib/tebex-types";
+import { lookupPlayerNames, parseFiveMId } from "@/lib/player-lookup";
 import {
+  ANON_BUYER,
   normalizePackageName,
-  publicBuyerName,
   type RecentPurchase,
 } from "@/lib/recent-purchases";
 
 export const revalidate = 30;
 
+type PurchaseDraft = RecentPurchase & { fivemId?: string | number | null };
+
 function fromPackages(
   id: string,
-  buyer: string | null | undefined,
+  fivemId: string | number | null | undefined,
   packages: { id?: number; name?: string }[] | null | undefined,
   at: string,
   avatar?: string | null
-): RecentPurchase[] {
+): PurchaseDraft[] {
   const first = (packages ?? []).find((pkg) => pkg.name?.trim() || pkg.id);
   const item = first?.name?.trim() || "a package";
   return [
     {
       id,
-      buyer: publicBuyerName(buyer),
+      buyer: ANON_BUYER,
+      fivemId: parseFiveMId(fivemId),
       item,
       at,
       avatar: avatar || null,
@@ -52,7 +56,7 @@ function hrefForPurchase(purchase: RecentPurchase, catalog: TebexPackage[]) {
   return null;
 }
 
-async function withPackageLinks(items: RecentPurchase[]): Promise<RecentPurchase[]> {
+async function withPackageLinks(items: PurchaseDraft[]): Promise<PurchaseDraft[]> {
   if (!items.length) return items;
   const catalog = await getAllPackages().catch(() => []);
   return items.map((item) => ({
@@ -61,21 +65,30 @@ async function withPackageLinks(items: RecentPurchase[]): Promise<RecentPurchase
   }));
 }
 
-async function fromDatabase(): Promise<RecentPurchase[]> {
+async function withPlayerNames(items: PurchaseDraft[]): Promise<RecentPurchase[]> {
+  const names = await lookupPlayerNames(items.map((item) => item.fivemId));
+  return items.map(({ fivemId, ...item }) => {
+    const id = parseFiveMId(fivemId);
+    const name = id != null ? names.get(id) : null;
+    return { ...item, buyer: name || ANON_BUYER };
+  });
+}
+
+async function fromDatabase(): Promise<PurchaseDraft[]> {
   if (!isDatabaseConfigured()) return [];
   await ensureOrdersTable();
   const rows = await db.select().from(orders).orderBy(desc(orders.createdAt)).limit(16);
   return rows.flatMap((row) =>
     fromPackages(
       `db-${row.id}`,
-      row.username,
+      row.usernameId,
       row.packages,
       row.createdAt instanceof Date ? row.createdAt.toISOString() : String(row.createdAt)
     )
   );
 }
 
-async function fromPluginApi(): Promise<RecentPurchase[]> {
+async function fromPluginApi(): Promise<PurchaseDraft[]> {
   if (!isAdminApiConfigured()) return [];
   const payments = await listPayments(20);
   return payments
@@ -83,19 +96,19 @@ async function fromPluginApi(): Promise<RecentPurchase[]> {
     .flatMap((payment) =>
       fromPackages(
         `tbx-${payment.id}`,
-        payment.player?.name,
+        payment.player?.id,
         payment.packages,
         payment.date
       )
     );
 }
 
-async function fromHeadlessSidebar(): Promise<RecentPurchase[]> {
+async function fromHeadlessSidebar(): Promise<PurchaseDraft[]> {
   const payments = await getSidebarRecentPayments();
   return payments.flatMap((payment, index) =>
     fromPackages(
       `sb-${payment.username_id ?? "anon"}-${payment.created_at ?? index}`,
-      payment.username,
+      payment.username_id,
       payment.package ? [payment.package] : [],
       payment.created_at ?? new Date().toISOString(),
       payment.avatar_url
@@ -108,7 +121,7 @@ export async function GET() {
 
   for (const source of sources) {
     try {
-      const data = await withPackageLinks(await source());
+      const data = await withPlayerNames(await withPackageLinks(await source()));
       if (data.length) return NextResponse.json({ data: data.slice(0, 12) });
     } catch (error) {
       console.error("recent purchases:", error);

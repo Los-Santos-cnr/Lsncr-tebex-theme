@@ -8,52 +8,64 @@ import {
   listPaymentsHistory,
   type TebexPayment,
 } from "@/lib/tebex-admin";
+import { lookupPlayerNames, parseFiveMId } from "@/lib/player-lookup";
 import { getAllPackages, getSidebarRecentPayments } from "@/lib/tebex";
 
 export const TOP_SUPPORTERS_LIMIT = 100;
 
 export type PublicSupporter = {
   rank: number;
-  name: string;
+  id: string;
+  name: string | null;
 };
 
 type RankedSpender = {
   key: string;
-  name: string;
+  id: string;
   total: number;
 };
 
-function supporterDisplayName(raw?: string | null) {
-  if (!raw) return null;
-  let name = raw.trim();
-  if (name.includes("@")) name = name.split("@")[0] ?? name;
-  name = name.replace(/[^\p{L}\p{N}._\- ]/gu, "").trim();
-  if (!name) return null;
-  if (name.length > 24) return `${name.slice(0, 22)}…`;
-  return name;
+function supporterDisplayId(id?: string | number | null, uuid?: string | null) {
+  const raw =
+    id != null && String(id).trim()
+      ? String(id).trim()
+      : uuid?.trim() || "";
+  if (!raw || raw.includes("@")) return null;
+
+  const cleaned = raw.replace(/[^\p{L}\p{N}._\-:]/gu, "").trim();
+  if (!cleaned) return null;
+  if (/^\d+$/.test(cleaned)) return `#${cleaned}`;
+  if (cleaned.length > 24) return `${cleaned.slice(0, 22)}…`;
+  return cleaned;
 }
 
 function isCompleteStatus(status?: string | null) {
   return (status ?? "complete").toLowerCase() === "complete";
 }
 
-function playerKey(id?: string | number | null, uuid?: string | null, name?: string | null) {
+function playerKey(id?: string | number | null, uuid?: string | null) {
   const uuidKey = uuid?.trim();
   if (uuidKey) return `uuid:${uuidKey.toLowerCase()}`;
   if (id != null && String(id).trim()) return `id:${String(id).trim().toLowerCase()}`;
-  const display = supporterDisplayName(name);
-  if (display) return `name:${display.toLowerCase()}`;
   return null;
 }
 
-function addSpend(map: Map<string, RankedSpender>, key: string, name: string, amount: number) {
+function preferId(current: string, next: string) {
+  const currentNumeric = current.startsWith("#");
+  const nextNumeric = next.startsWith("#");
+  if (nextNumeric && !currentNumeric) return next;
+  return current;
+}
+
+function addSpend(map: Map<string, RankedSpender>, key: string, id: string, amount: number) {
   if (!Number.isFinite(amount) || amount <= 0) return;
   const current = map.get(key);
   if (current) {
     current.total += amount;
+    current.id = preferId(current.id, id);
     return;
   }
-  map.set(key, { key, name, total: amount });
+  map.set(key, { key, id, total: amount });
 }
 
 function fromPluginPayments(payments: TebexPayment[]) {
@@ -61,13 +73,13 @@ function fromPluginPayments(payments: TebexPayment[]) {
 
   for (const payment of payments) {
     if (!isCompleteStatus(payment.status)) continue;
-    const name = supporterDisplayName(payment.player?.name);
-    if (!name) continue;
-    const key = playerKey(payment.player?.id, payment.player?.uuid, name);
+    const id = supporterDisplayId(payment.player?.id, payment.player?.uuid);
+    if (!id) continue;
+    const key = playerKey(payment.player?.id, payment.player?.uuid);
     if (!key) continue;
     const currency = payment.currency?.iso_4217 ?? "USD";
     const amount = convertAmount(Number(payment.amount), currency, "USD", FALLBACK_USD_RATES);
-    addSpend(map, key, name, amount);
+    addSpend(map, key, id, amount);
   }
 
   return map;
@@ -82,12 +94,12 @@ async function fromDatabase() {
 
   for (const row of rows) {
     if (!isCompleteStatus(row.status)) continue;
-    const name = supporterDisplayName(row.username);
-    if (!name) continue;
-    const key = playerKey(row.usernameId, null, name);
+    const id = supporterDisplayId(row.usernameId);
+    if (!id) continue;
+    const key = playerKey(row.usernameId);
     if (!key) continue;
     const amount = convertAmount(Number(row.total), row.currency || "USD", "USD", FALLBACK_USD_RATES);
-    addSpend(map, key, name, amount);
+    addSpend(map, key, id, amount);
   }
 
   return map;
@@ -101,9 +113,9 @@ async function fromRecentSidebar() {
   ]);
 
   for (const payment of payments) {
-    const name = supporterDisplayName(payment.username);
-    if (!name) continue;
-    const key = playerKey(payment.username_id, null, name);
+    const id = supporterDisplayId(payment.username_id);
+    if (!id) continue;
+    const key = playerKey(payment.username_id);
     if (!key) continue;
     const needle = normalizePackageName(payment.package?.name ?? "");
     const pkg = catalog.find(
@@ -111,7 +123,7 @@ async function fromRecentSidebar() {
         (payment.package?.id && item.id === payment.package.id) ||
         (needle && normalizePackageName(item.name) === needle)
     );
-    addSpend(map, key, name, pkg?.total_price || 1);
+    addSpend(map, key, id, pkg?.total_price || 1);
   }
 
   return map;
@@ -119,19 +131,29 @@ async function fromRecentSidebar() {
 
 function toPublicList(map: Map<string, RankedSpender>): PublicSupporter[] {
   return [...map.values()]
-    .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name))
+    .sort((a, b) => b.total - a.total || a.id.localeCompare(b.id))
     .slice(0, TOP_SUPPORTERS_LIMIT)
     .map((supporter, index) => ({
       rank: index + 1,
-      name: supporter.name,
+      id: supporter.id,
+      name: null,
     }));
+}
+
+async function withPlayerNames(supporters: PublicSupporter[]): Promise<PublicSupporter[]> {
+  if (!supporters.length) return supporters;
+  const names = await lookupPlayerNames(supporters.map((supporter) => supporter.id));
+  return supporters.map((supporter) => ({
+    ...supporter,
+    name: names.get(parseFiveMId(supporter.id) ?? -1) ?? null,
+  }));
 }
 
 export async function getTopSupporters(): Promise<PublicSupporter[]> {
   if (isAdminApiConfigured()) {
     try {
       const ranked = toPublicList(fromPluginPayments(await listPaymentsHistory()));
-      if (ranked.length) return ranked;
+      if (ranked.length) return withPlayerNames(ranked);
     } catch (error) {
       console.error("top supporters:", error);
     }
@@ -139,13 +161,13 @@ export async function getTopSupporters(): Promise<PublicSupporter[]> {
 
   try {
     const fromOrders = toPublicList(await fromDatabase());
-    if (fromOrders.length) return fromOrders;
+    if (fromOrders.length) return withPlayerNames(fromOrders);
   } catch (error) {
     console.error("top supporters database:", error);
   }
 
   try {
-    return toPublicList(await fromRecentSidebar());
+    return withPlayerNames(toPublicList(await fromRecentSidebar()));
   } catch (error) {
     console.error("top supporters sidebar:", error);
     return [];

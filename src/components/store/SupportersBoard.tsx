@@ -42,7 +42,7 @@ export function SupportersBoard({ supporters }: { supporters: PublicSupporter[] 
             const style = PODIUM_STYLES[index] ?? PODIUM_STYLES[2];
             return (
               <li
-                key={`${supporter.rank}-${supporter.name}`}
+                key={`${supporter.rank}-${supporter.id}`}
                 className={cn(
                   "rounded-lg border px-5 py-6 text-center shadow-pop",
                   style.wrap,
@@ -57,8 +57,13 @@ export function SupportersBoard({ supporters }: { supporters: PublicSupporter[] 
                     {supporter.rank}
                   </span>
                 )}
-                <p className="lscnr-heading mt-3 text-xl text-foreground sm:text-2xl">
-                  {supporter.name}
+                <p
+                  className={cn(
+                    "lscnr-heading mt-3 text-xl text-foreground sm:text-2xl",
+                    !supporter.name && "font-mono"
+                  )}
+                >
+                  {supporter.name ?? supporter.id}
                 </p>
                 <p className="mt-2 text-xs text-muted-foreground">
                   {index === 0 ? "Our most generous supporter" : `Rank ${supporter.rank}`}
@@ -78,13 +83,20 @@ export function SupportersBoard({ supporters }: { supporters: PublicSupporter[] 
           <ol className="grid gap-2 sm:grid-cols-2">
             {rest.map((supporter) => (
               <li
-                key={`${supporter.rank}-${supporter.name}`}
+                key={`${supporter.rank}-${supporter.id}`}
                 className="flex items-center gap-3 rounded-md border border-border bg-surface px-3 py-2.5"
               >
                 <span className="w-8 shrink-0 font-display text-sm font-semibold text-gold">
                   {String(supporter.rank).padStart(2, "0")}
                 </span>
-                <span className="min-w-0 truncate text-sm text-foreground">{supporter.name}</span>
+                <span
+                  className={cn(
+                    "min-w-0 truncate text-sm text-foreground",
+                    !supporter.name && "font-mono"
+                  )}
+                >
+                  {supporter.name ?? supporter.id}
+                </span>
               </li>
             ))}
           </ol>
