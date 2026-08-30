@@ -280,6 +280,28 @@ export async function getAllPackages(): Promise<TebexPackage[]> {
   return packages.sort((a, b) => a.order - b.order);
 }
 
+export async function getCatalogSaleBanner() {
+  const packages = await getAllPackages().catch(() => []);
+  const onSale = packages.filter((pkg) => pkg.sale?.active || (pkg.discount ?? 0) > 0);
+  if (!onSale.length) return "";
+
+  const percents = onSale
+    .map((pkg) => {
+      if (pkg.sale?.discount && pkg.sale.discount > 0 && pkg.sale.discount <= 100) return pkg.sale.discount;
+      if (pkg.discount > 0 && pkg.discount <= 100) return Math.round(pkg.discount);
+      if (pkg.base_price > 0 && pkg.total_price < pkg.base_price) {
+        return Math.round((1 - pkg.total_price / pkg.base_price) * 100);
+      }
+      return 0;
+    })
+    .filter((value) => value > 0);
+
+  const unique = [...new Set(percents)].sort((a, b) => b - a);
+  if (unique.length === 1) return `Sale · ${unique[0]}% off`;
+  if (unique.length > 1) return `Sale · up to ${unique[0]}% off`;
+  return "Sale now on";
+}
+
 export type TebexSidebarPayment = {
   username?: string;
   username_id?: string;

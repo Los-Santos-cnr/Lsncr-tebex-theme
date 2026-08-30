@@ -15,9 +15,6 @@ export const FIVEM_CONNECT_URL = "https://cfx.re/join/lscnr";
 export const DISCORD_INVITE = "https://discord.gg/lscnr";
 export const TEBEX_PAYMENT_HISTORY_URL = "https://checkout.tebex.io/payment-history/";
 
-/** Marketing banner shown across the top of the store. */
-export const PROMO_BANNER_TEXT = "Subscription discounts!";
-
 /** Trust stats shown under the hero. */
 export const TRUST_STATS: { label: string }[] = [
   { label: "Queue Priority & Membership Perks" },
@@ -116,10 +113,6 @@ export function getSiteUrl() {
 
 export function getPromoCode() {
   return process.env.NEXT_PUBLIC_PROMO_CODE?.trim() || null;
-}
-
-export function getPromoBannerText() {
-  return process.env.NEXT_PUBLIC_PROMO_BANNER?.trim() || PROMO_BANNER_TEXT;
 }
 
 export function getHeroImage() {

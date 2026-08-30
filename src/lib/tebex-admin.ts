@@ -259,6 +259,32 @@ export function listSales() {
   return pluginFetch<{ data: TebexSale[] }>("/sales");
 }
 
+export function isSaleLive(sale: TebexSale, now = Math.floor(Date.now() / 1000)) {
+  const started = !sale.start || sale.start <= now;
+  const unexpired = !sale.expire || sale.expire > now;
+  return started && unexpired;
+}
+
+export function formatSaleBanner(sale: TebexSale) {
+  const name = sale.name?.trim() ?? "";
+  const discount =
+    sale.discount?.type === "percentage" && sale.discount.percentage
+      ? `${sale.discount.percentage}% off`
+      : sale.discount?.value
+        ? `${sale.discount.value} off`
+        : "";
+  if (name && discount) return `${name} · ${discount}`;
+  return name || discount;
+}
+
+export async function listActiveSales() {
+  if (!isAdminApiConfigured()) return [];
+  const payload = await pluginFetch<{ data: TebexSale[] }>("/sales", { revalidate: 60 });
+  return (payload?.data ?? [])
+    .filter((sale) => isSaleLive(sale))
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || b.expire - a.expire);
+}
+
 /* ----------------------------- Payments --------------------------- */
 
 export interface TebexPaymentsPaged {
