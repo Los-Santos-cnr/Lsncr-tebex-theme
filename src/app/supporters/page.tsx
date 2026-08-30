@@ -3,7 +3,7 @@ import { SupportersBoard } from "@/components/store/SupportersBoard";
 import { PageContainer, PageHeader } from "@/components/ui/PageHeader";
 import { getTopSupporters, TOP_SUPPORTERS_LIMIT } from "@/lib/supporters";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Top Supporters",

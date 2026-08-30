@@ -1,6 +1,5 @@
 const DEFAULT_LOOKUP_URL = "https://ucp.lscnr.net";
 const LOOKUP_LIMIT = 100;
-const LOOKUP_REVALIDATE_SECONDS = 3600;
 
 export function getPlayerLookupKey() {
   return process.env.STORE_PLAYER_LOOKUP_KEY?.trim() ?? "";
@@ -55,15 +54,16 @@ export async function lookupPlayerNames(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Accept: "application/json",
         "X-API-Key": apiKey,
       },
       body: JSON.stringify({ ids }),
-      signal: AbortSignal.timeout(5000),
-      next: { revalidate: LOOKUP_REVALIDATE_SECONDS },
+      cache: "no-store",
+      signal: AbortSignal.timeout(8000),
     });
 
     if (!res.ok) {
-      console.error("player lookup failed:", res.status);
+      console.error("player lookup failed:", res.status, await res.text().catch(() => ""));
       return names;
     }
 
