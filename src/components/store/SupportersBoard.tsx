@@ -21,28 +21,51 @@ const PODIUM_STYLES = [
   },
 ] as const;
 
-function formatShare(score: number) {
-  if (score <= 0) return "0";
-  if (score < 0.1) return "<0.1";
-  const rounded = Math.round(score * 10) / 10;
-  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+function roundShare(score: number, decimals: number) {
+  const factor = 10 ** decimals;
+  return Math.round(score * factor) / factor;
+}
+
+function shareLabel(score: number, decimals: number) {
+  if (score <= 0) return (0).toFixed(decimals);
+  const rounded = roundShare(score, decimals);
+  if (rounded === 0) return `<${(1 / 10 ** decimals).toFixed(decimals)}`;
+  return rounded.toFixed(decimals);
+}
+
+/** Use extra decimals when rounding would make two different totals look tied. */
+function formatShares(scores: number[]) {
+  let decimals = 2;
+  while (decimals < 4) {
+    const labels = scores.map((score) => shareLabel(score, decimals));
+    const tied = scores.some((score, index) =>
+      scores.some((other, otherIndex) => index !== otherIndex && score !== other && labels[index] === labels[otherIndex])
+    );
+    if (!tied) break;
+    decimals += 1;
+  }
+  return scores.map((score) => shareLabel(score, decimals));
 }
 
 function ScoreMark({
+  label,
   score,
+  maxScore,
   className,
 }: {
+  label: string;
   score: number;
+  maxScore: number;
   className?: string;
 }) {
-  const label = formatShare(score);
+  const bar = maxScore > 0 ? Math.min(100, (score / maxScore) * 100) : 0;
   return (
-    <span className={cn("flex min-w-[2.75rem] flex-col justify-center gap-1", className)}>
-      <span className="font-display text-[10px] font-semibold leading-none tracking-wide text-gold">
+    <span className={cn("flex w-[3.25rem] shrink-0 flex-col justify-center gap-1", className)}>
+      <span className="font-display text-[11px] font-semibold tabular-nums leading-none tracking-wide text-gold">
         {label}%
       </span>
-      <span className="block h-0.5 w-full overflow-hidden rounded-full bg-white/10" aria-hidden>
-        <span className="block h-full rounded-full bg-gold" style={{ width: `${Math.min(100, score)}%` }} />
+      <span className="block h-1 w-full overflow-hidden rounded-full bg-white/10" aria-hidden>
+        <span className="block h-full rounded-full bg-gold" style={{ width: `${bar}%` }} />
       </span>
       <span className="sr-only">{label} percent of all support on this board</span>
     </span>
@@ -61,6 +84,8 @@ export function SupportersBoard({ supporters }: { supporters: PublicSupporter[] 
 
   const podium = [supporters[0], supporters[1], supporters[2]].filter(Boolean);
   const rest = supporters.slice(podium.length);
+  const maxScore = supporters[0]?.score || 1;
+  const labels = formatShares(supporters.map((supporter) => supporter.score));
 
   return (
     <div className="space-y-10">
@@ -96,8 +121,13 @@ export function SupportersBoard({ supporters }: { supporters: PublicSupporter[] 
                 <p className="mt-2 text-xs text-muted-foreground">
                   {index === 0 ? "Our most generous supporter" : `Rank ${supporter.rank}`}
                 </p>
-                <div className="mx-auto mt-3 w-16">
-                  <ScoreMark score={supporter.score} className="items-center" />
+                <div className="mx-auto mt-3 w-20">
+                  <ScoreMark
+                    label={labels[index] ?? shareLabel(supporter.score, 2)}
+                    score={supporter.score}
+                    maxScore={maxScore}
+                    className="items-center"
+                  />
                 </div>
               </li>
             );
@@ -120,7 +150,11 @@ export function SupportersBoard({ supporters }: { supporters: PublicSupporter[] 
                 <span className="w-10 shrink-0 font-display text-sm font-semibold text-gold">
                   {String(supporter.rank).padStart(3, "0")}
                 </span>
-                <ScoreMark score={supporter.score} />
+                <ScoreMark
+                  label={labels[supporter.rank - 1] ?? shareLabel(supporter.score, 2)}
+                  score={supporter.score}
+                  maxScore={maxScore}
+                />
                 <span
                   className={cn(
                     "min-w-0 truncate text-sm text-foreground",

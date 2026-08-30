@@ -23,7 +23,7 @@ export default async function SupportersPage() {
         />
         <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
           Up to {TOP_SUPPORTERS_LIMIT} supporters with a character on the server, sorted by who has given the most. The
-          percent is their share of everyone on this board, not a euro amount. Amounts stay private.
+          percent is their slice of this whole list combined, not a euro amount. Amounts stay private.
         </p>
         <SupportersBoard supporters={supporters} />
       </PageContainer>
