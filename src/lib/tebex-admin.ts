@@ -270,9 +270,13 @@ export interface TebexPaymentsPaged {
   data?: TebexPayment[];
 }
 
-export async function listPayments(limit = 25) {
+export async function listPayments(
+  limit = 25,
+  init?: { revalidate?: number | false }
+) {
   const payload = await pluginFetch<TebexPayment[] | TebexPaginated<TebexPayment>>(
-    `/payments?limit=${limit}`
+    `/payments?limit=${limit}`,
+    init
   );
   if (Array.isArray(payload)) return payload;
   if (payload && Array.isArray(payload.data)) return payload.data;
@@ -319,7 +323,7 @@ export async function listPaymentsHistory(maxPages = 40) {
     return payments;
   } catch (error) {
     console.error("payments history:", error);
-    return listPayments(100);
+    return listPayments(100, { revalidate: 3600 });
   }
 }
 

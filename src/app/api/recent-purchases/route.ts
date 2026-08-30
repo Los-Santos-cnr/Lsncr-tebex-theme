@@ -12,7 +12,7 @@ import {
   type RecentPurchase,
 } from "@/lib/recent-purchases";
 
-export const revalidate = 30;
+export const dynamic = "force-dynamic";
 
 type PurchaseDraft = RecentPurchase & { fivemId?: string | number | null };
 
@@ -90,7 +90,7 @@ async function fromDatabase(): Promise<PurchaseDraft[]> {
 
 async function fromPluginApi(): Promise<PurchaseDraft[]> {
   if (!isAdminApiConfigured()) return [];
-  const payments = await listPayments(20);
+  const payments = await listPayments(20, { revalidate: 30 });
   return payments
     .filter((payment) => (payment.status ?? "complete").toLowerCase() === "complete")
     .flatMap((payment) =>
