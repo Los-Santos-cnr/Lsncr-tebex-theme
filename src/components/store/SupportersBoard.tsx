@@ -33,18 +33,26 @@ function shareLabel(score: number, decimals: number) {
   return rounded.toFixed(decimals);
 }
 
-/** Use extra decimals when rounding would make two different totals look tied. */
+/** Two decimals by default. Extra digits only for people who would otherwise look tied. */
 function formatShares(scores: number[]) {
-  let decimals = 2;
-  while (decimals < 4) {
-    const labels = scores.map((score) => shareLabel(score, decimals));
-    const tied = scores.some((score, index) =>
-      scores.some((other, otherIndex) => index !== otherIndex && score !== other && labels[index] === labels[otherIndex])
-    );
-    if (!tied) break;
-    decimals += 1;
+  const labels = scores.map((score) => shareLabel(score, 2));
+  const groups = new Map<string, number[]>();
+
+  labels.forEach((label, index) => {
+    const members = groups.get(label);
+    if (members) members.push(index);
+    else groups.set(label, [index]);
+  });
+
+  for (const indexes of groups.values()) {
+    const distinct = new Set(indexes.map((index) => scores[index]));
+    if (distinct.size < 2) continue;
+    for (const index of indexes) {
+      labels[index] = shareLabel(scores[index], 4);
+    }
   }
-  return scores.map((score) => shareLabel(score, decimals));
+
+  return labels;
 }
 
 function ScoreMark({
@@ -60,7 +68,7 @@ function ScoreMark({
 }) {
   const bar = maxScore > 0 ? Math.min(100, (score / maxScore) * 100) : 0;
   return (
-    <span className={cn("flex w-[3.25rem] shrink-0 flex-col justify-center gap-1", className)}>
+    <span className={cn("flex min-w-[3.25rem] shrink-0 flex-col justify-center gap-1", className)}>
       <span className="font-display text-[11px] font-semibold tabular-nums leading-none tracking-wide text-gold">
         {label}%
       </span>
