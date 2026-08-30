@@ -13,7 +13,7 @@ export default function AccountPage() {
         <PageHeader
           title="Your account"
           eyebrow="Linked identity"
-          description="Your linked CFX identity for checkout and delivery."
+          description="Manage your linked CFX identity, subscriptions, and purchases."
         />
         <AccountPageClient />
       </PageContainer>

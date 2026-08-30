@@ -83,7 +83,7 @@ export function OrdersPageClient() {
               <p className="text-xs text-muted-foreground">
                 {order.createdAt
                   ? new Date(order.createdAt).toLocaleDateString()
-                  : "—"}
+                  : "-"}
               </p>
               <p className="font-mono text-[10px] text-subtle-foreground">
                 {order.tebexTransactionId}

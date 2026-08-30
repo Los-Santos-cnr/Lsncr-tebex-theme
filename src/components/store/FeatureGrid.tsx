@@ -29,10 +29,10 @@ export function FeatureGrid({ className }: { className?: string }) {
     <div className={cn("grid grid-cols-2 gap-2 sm:gap-3", className)}>
       {FEATURES.map((feature) => (
         <div key={feature.title} className="lscnr-panel rounded-sm p-3 sm:p-4">
-          <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-sm bg-gold/10">
-            <feature.icon className="h-4 w-4 text-gold" />
+          <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-md bg-cop/10">
+            <feature.icon className="h-4 w-4 text-cop" />
           </div>
-          <p className="font-display text-sm font-bold uppercase tracking-wide text-foreground">
+          <p className="text-sm font-semibold text-foreground">
             {feature.title}
           </p>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">

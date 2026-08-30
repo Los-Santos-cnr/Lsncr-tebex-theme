@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { AdminLoginForm } from "@/components/admin/AdminLoginForm";
 import { CardBody } from "@/components/ui/Card";
+import { BrandLogo } from "@/components/layout/BrandLogo";
 import { isAdminAuthenticated, isAdminConfigured } from "@/lib/admin-auth";
-import { SITE_BRAND } from "@/lib/site";
 
 export const metadata = {
   title: "Admin login",
@@ -19,13 +19,9 @@ export default async function AdminLoginPage() {
     <div className="flex min-h-screen items-center justify-center px-4 py-16">
       <div className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center gap-2 text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-sm border border-border/50 lscnr-logo-badge font-display text-xl font-extrabold">
-            L
-          </span>
-          <h1 className="lscnr-heading text-xl">
-            {SITE_BRAND} Admin
-          </h1>
-          <p className="text-xs text-muted-foreground">Restricted access — staff only.</p>
+          <BrandLogo className="h-14" />
+          <h1 className="lscnr-heading text-xl">Admin</h1>
+          <p className="text-xs text-muted-foreground">Restricted access. Staff only.</p>
         </div>
 
         <div className="lscnr-panel rounded-md">

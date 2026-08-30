@@ -21,8 +21,8 @@ export function FaqAccordion({
           <div
             key={item.question}
             className={cn(
-              "lscnr-card overflow-hidden rounded-md",
-              isOpen && "border-cop/40"
+              "lscnr-card overflow-hidden rounded-lg",
+              isOpen && "border-gold/40"
             )}
           >
             <button
@@ -31,10 +31,10 @@ export function FaqAccordion({
               aria-expanded={isOpen}
               className="flex w-full items-center gap-4 px-5 py-4 text-left"
             >
-              <span className="font-display text-sm font-extrabold tabular-nums text-gold">
+              <span className="font-display text-sm tabular-nums text-gold">
                 {String(i + 1).padStart(2, "0")}
               </span>
-              <span className="flex-1 font-display text-sm font-bold uppercase tracking-wide text-foreground">
+              <span className="flex-1 font-display text-sm uppercase tracking-wide text-foreground">
                 {item.question}
               </span>
               <Plus

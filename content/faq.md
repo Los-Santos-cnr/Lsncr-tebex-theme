@@ -26,4 +26,4 @@ Yes. Enter your coupon on the cart page before checkout.
 
 ## What is the refund policy?
 
-If you are not satisfied you may request a refund within 24 hours. Chargebacks or PayPal disputes result in a permanent ban from all of our services.
+No refunds. Digital packages are sold through Tebex, and we follow Tebex's refund policy. All purchases are final. Chargebacks or payment disputes result in a permanent ban from all of our services.

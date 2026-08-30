@@ -10,13 +10,15 @@ export function MarkdownContent({
   className?: string;
 }) {
   return (
-    <div
-      className={cn(
-        "prose prose-sm dark:prose-invert max-w-none text-muted-foreground",
-        className
-      )}
-    >
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+    <div className={cn("lscnr-prose max-w-none", className)}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          h1: () => null,
+        }}
+      >
+        {content}
+      </ReactMarkdown>
     </div>
   );
 }

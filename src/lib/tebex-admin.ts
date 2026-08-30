@@ -27,21 +27,24 @@ export class TebexAdminError extends Error {
   }
 }
 
-async function pluginFetch<T>(path: string, init?: RequestInit): Promise<T> {
+type PluginFetchInit = RequestInit & { revalidate?: number | false };
+
+async function pluginFetch<T>(path: string, init?: PluginFetchInit): Promise<T> {
   const secret = getSecretKey();
   if (!secret) {
     throw new TebexAdminError(500, "TEBEX_SECRET_KEY is not configured");
   }
 
-  const headers = new Headers(init?.headers);
+  const { revalidate = false, ...rest } = init ?? {};
+  const headers = new Headers(rest.headers);
   headers.set("X-Tebex-Secret", secret);
   headers.set("Accept", "application/json");
-  if (init?.body) headers.set("Content-Type", "application/json");
+  if (rest.body) headers.set("Content-Type", "application/json");
 
   const res = await fetch(`${PLUGIN_API}${path}`, {
-    ...init,
+    ...rest,
     headers,
-    cache: "no-store",
+    ...(revalidate === false ? { cache: "no-store" as const } : { next: { revalidate } }),
   });
 
   if (!res.ok) {
@@ -258,6 +261,102 @@ export function listSales() {
 
 /* ----------------------------- Payments --------------------------- */
 
-export function listPayments(limit = 25) {
-  return pluginFetch<TebexPayment[]>(`/payments?limit=${limit}`);
+export interface TebexPaymentsPaged {
+  total?: number;
+  per_page?: number;
+  current_page?: number;
+  last_page?: number;
+  pagination?: { lastPage?: number; currentPage?: number };
+  data?: TebexPayment[];
+}
+
+export async function listPayments(limit = 25) {
+  const payload = await pluginFetch<TebexPayment[] | TebexPaginated<TebexPayment>>(
+    `/payments?limit=${limit}`
+  );
+  if (Array.isArray(payload)) return payload;
+  if (payload && Array.isArray(payload.data)) return payload.data;
+  return [];
+}
+
+function paymentsFromPaged(payload: TebexPayment[] | TebexPaymentsPaged | null) {
+  if (Array.isArray(payload)) return { payments: payload, lastPage: 1 };
+  const payments = payload?.data ?? [];
+  const lastPage = Number(payload?.last_page ?? payload?.pagination?.lastPage ?? 1);
+  return { payments, lastPage: Number.isFinite(lastPage) && lastPage > 0 ? lastPage : 1 };
+}
+
+/** Cached history used to rank supporters. Caps pages so the page stays fast. */
+export async function listPaymentsHistory(maxPages = 40) {
+  try {
+    const first = await pluginFetch<TebexPayment[] | TebexPaymentsPaged>(
+      "/payments?paged=1&page=1",
+      { revalidate: 3600 }
+    );
+    const parsed = paymentsFromPaged(first);
+    const lastPage = Math.min(parsed.lastPage, maxPages);
+    const payments = [...parsed.payments];
+
+    const batchSize = 5;
+    for (let page = 2; page <= lastPage; page += batchSize) {
+      const pages = Array.from(
+        { length: Math.min(batchSize, lastPage - page + 1) },
+        (_, index) => page + index
+      );
+      const batch = await Promise.all(
+        pages.map((pageNumber) =>
+          pluginFetch<TebexPayment[] | TebexPaymentsPaged>(
+            `/payments?paged=1&page=${pageNumber}`,
+            { revalidate: 3600 }
+          ).catch(() => null)
+        )
+      );
+      for (const payload of batch) {
+        payments.push(...paymentsFromPaged(payload).payments);
+      }
+    }
+
+    return payments;
+  } catch (error) {
+    console.error("payments history:", error);
+    return listPayments(100);
+  }
+}
+
+export function getPayment(transaction: string) {
+  return pluginFetch<TebexPayment>(`/payments/${encodeURIComponent(transaction)}`);
+}
+
+export interface TebexPlayerLookupPayment {
+  txn_id: string;
+  time: number;
+  price: number;
+  currency: string;
+  status: number;
+}
+
+export interface TebexPlayerLookup {
+  player?: {
+    id?: string;
+    username?: string;
+    plugin_username_id?: number;
+  };
+  payments?: TebexPlayerLookupPayment[];
+}
+
+export function lookupPlayer(user: string) {
+  return pluginFetch<TebexPlayerLookup>(`/user/${encodeURIComponent(user)}`);
+}
+
+export interface TebexPlayerPackage {
+  txn_id: string;
+  date: string;
+  quantity?: number;
+  package?: { id: number; name: string };
+}
+
+export function getPlayerPackages(playerId: string) {
+  return pluginFetch<TebexPlayerPackage[]>(
+    `/player/${encodeURIComponent(playerId)}/packages`
+  );
 }

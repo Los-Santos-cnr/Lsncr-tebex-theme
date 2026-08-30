@@ -5,6 +5,7 @@ import { PackageCard } from "@/components/store/PackageCard";
 import { PageContainer, PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/Section";
 import { getCategoryBySlug, isTebexConfigured } from "@/lib/tebex";
+import { excerpt } from "@/lib/format";
 
 export async function generateMetadata({
   params,
@@ -52,10 +53,13 @@ export default async function CategoryPage({
         </nav>
         <PageHeader
           title={category.name}
-          description={category.description || undefined}
+          eyebrow="Shop"
+          description={
+            category.description ? excerpt(category.description, 220) : undefined
+          }
         />
         {packages.length ? (
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
             {packages.map((pkg) => (
               <PackageCard key={pkg.id} pkg={pkg} variant="grid" />
             ))}

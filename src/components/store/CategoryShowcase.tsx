@@ -15,7 +15,7 @@ export function CategoryShowcase({
   if (!items.length) return null;
 
   return (
-    <div className={cn("grid gap-4 sm:grid-cols-2 lg:grid-cols-4", className)}>
+    <div className={cn("grid gap-3 sm:grid-cols-2 lg:grid-cols-4", className)}>
       {items.map((category) => {
         const image = category.packages?.[0]?.image;
         const count = category.packages?.length ?? 0;
@@ -23,22 +23,22 @@ export function CategoryShowcase({
           <Link
             key={category.id}
             href={categoryHref(category)}
-            className="lscnr-panel group relative overflow-hidden rounded-sm transition-colors hover:border-cop/35"
+            className="lscnr-panel group relative overflow-hidden transition-transform duration-300 hover:-translate-y-1 hover:border-gold/50"
           >
-            <div className="relative aspect-[4/3] bg-surface-2 p-4">
+            <div className="relative aspect-[16/10] bg-surface-2">
               {image ? (
                 <Image
                   src={image}
                   alt={category.name}
                   fill
-                  className="object-contain"
+                  className="object-contain p-5"
                   sizes="300px"
                 />
               ) : null}
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 border-t border-cop/20 bg-background/80 p-4 backdrop-blur-sm">
-                <p className="lscnr-heading text-base text-foreground">{category.name}</p>
-                <p className="mt-1 font-display text-[10px] font-semibold uppercase tracking-widest text-gold">
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-3">
+                <p className="lscnr-heading text-sm text-foreground">{category.name}</p>
+                <p className="mt-0.5 font-display text-[10px] uppercase tracking-[0.18em] text-gold">
                   {count} {count === 1 ? "item" : "items"}
                 </p>
               </div>

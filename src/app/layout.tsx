@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Rajdhani } from "next/font/google";
-import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { Geist, Geist_Mono, Oswald } from "next/font/google";
+import { CurrencyProvider } from "@/components/providers/CurrencyProvider";
 import { CartBootstrap } from "@/components/providers/CartBootstrap";
 import { TebexScript } from "@/components/providers/TebexScript";
 import { SITE_METADATA_DESCRIPTION, SITE_METADATA_TITLE } from "@/lib/site";
@@ -16,16 +16,16 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const rajdhani = Rajdhani({
-  variable: "--font-rajdhani",
+const oswald = Oswald({
+  variable: "--font-oswald",
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
   title: {
     default: SITE_METADATA_TITLE,
-    template: "%s — LSCNR",
+    template: "%s | LSCNR",
   },
   description: SITE_METADATA_DESCRIPTION,
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
@@ -39,22 +39,23 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${rajdhani.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${oswald.variable} dark h-full antialiased`}
+      style={{ colorScheme: "dark" }}
       suppressHydrationWarning
     >
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("lscnr-theme");var d=t!=="light";document.documentElement.classList.toggle("dark",d);document.documentElement.classList.toggle("light",!d);document.documentElement.style.colorScheme=d?"dark":"light";}catch(e){document.documentElement.classList.add("dark");}})();`,
+            __html: `(function(){try{var r=document.documentElement;r.classList.add("dark");r.classList.remove("light");r.style.colorScheme="dark";}catch(e){}})();`,
           }}
         />
       </head>
       <body className="flex min-h-full flex-col" suppressHydrationWarning>
-        <ThemeProvider>
+        <CurrencyProvider>
           <CartBootstrap />
           {children}
           <TebexScript />
-        </ThemeProvider>
+        </CurrencyProvider>
       </body>
     </html>
   );

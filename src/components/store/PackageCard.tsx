@@ -2,29 +2,19 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { BadgeCheck, Headphones, ShieldCheck, Zap } from "lucide-react";
-import { useState } from "react";
+import { useState, type MouseEvent } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { CardBody } from "@/components/ui/Card";
 import { cn } from "@/components/ui/cn";
-import { excerpt, formatPrice } from "@/lib/format";
-import { PACKAGE_TRUST } from "@/lib/site";
+import { Price } from "@/components/store/Price";
 import { packageHref } from "@/lib/tebex";
 import type { TebexPackage } from "@/lib/tebex-types";
-import { addToCart } from "@/stores/useCartStore";
+import { addToCart, useCartStore } from "@/stores/useCartStore";
 
-type Variant = "spotlight" | "grid" | "carousel";
-
-const TRUST_ICONS = {
-  delivery: Zap,
-  secure: ShieldCheck,
-  support: Headphones,
-} as const;
+type Variant = "spotlight" | "grid" | "carousel" | "featured";
 
 export function PackageCard({
   pkg,
-  variant = "grid",
   className,
 }: {
   pkg: TebexPackage;
@@ -32,108 +22,59 @@ export function PackageCard({
   className?: string;
 }) {
   const [adding, setAdding] = useState(false);
+  const inCart = useCartStore((s) => s.localItems.some((item) => item.packageId === pkg.id));
   const onSale = (pkg.discount ?? 0) > 0 || pkg.sale?.active;
-  const spotlight = variant === "spotlight" || variant === "carousel";
+  const href = packageHref(pkg);
 
-  async function handleAdd() {
+  function handleAdd(event: MouseEvent) {
+    event.preventDefault();
     setAdding(true);
-    try {
-      await addToCart(pkg.id, 1);
-    } catch (error) {
-      console.error(error);
-      alert("Could not add to cart. Link your FiveM account first if prompted.");
-    } finally {
-      setAdding(false);
-    }
+    addToCart(pkg);
+    window.setTimeout(() => setAdding(false), 250);
   }
 
   return (
-    <article className={cn("lscnr-card flex h-full flex-col overflow-hidden rounded-md", className)}>
-      <Link href={packageHref(pkg)} className="relative block">
-        <div
-          className={cn(
-            "relative overflow-hidden bg-surface-2 p-4",
-            spotlight ? "aspect-video" : "aspect-[4/3]"
-          )}
-        >
+    <article className={cn("cas-card group", className)}>
+      <Link href={href} className="block">
+        <div className="cas-card-art">
           {pkg.image ? (
             <Image
               src={pkg.image}
               alt={pkg.name}
               fill
-              className="object-contain"
-              sizes={spotlight ? "420px" : "300px"}
+              className="cas-card-image object-contain p-7"
+              sizes="360px"
             />
-          ) : (
-            <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-              No preview
-            </div>
-          )}
+          ) : null}
           {onSale ? (
-            <div className="absolute left-3 top-3 flex gap-2">
-              <Badge tone="warning" size="xs" className="font-display tracking-widest">
+            <div className="absolute left-3 top-3 z-10">
+              <Badge tone="warning" size="xs">
                 Sale
               </Badge>
             </div>
           ) : null}
+          <div className="cas-card-fade" />
+          <div className="absolute inset-x-0 bottom-0 z-10 flex items-end justify-between gap-3 p-3.5 pr-20">
+            <div className="min-w-0">
+              <h3 className="lscnr-heading truncate text-sm text-white">{pkg.name}</h3>
+              <Price
+                className="lscnr-price mt-1 block text-sm"
+                amount={pkg.total_price}
+                from={pkg.currency}
+              />
+            </div>
+          </div>
         </div>
       </Link>
-
-      <CardBody className="flex flex-1 flex-col gap-3 p-4">
-        <Link href={packageHref(pkg)} className="hover:text-gold">
-          <h3 className="font-display text-lg font-extrabold uppercase leading-tight tracking-wide">
-            {pkg.name}
-          </h3>
-        </Link>
-
-        {spotlight ? (
-          <ul className="space-y-2 border-y border-border py-3">
-            {PACKAGE_TRUST.map((t) => {
-              const Icon = TRUST_ICONS[t.icon];
-              return (
-                <li key={t.title} className="flex items-start gap-2.5">
-                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-cop/30 bg-gold/10">
-                    <Icon className="h-3.5 w-3.5 text-gold" />
-                  </span>
-                  <span>
-                    <span className="block text-xs font-semibold text-foreground">{t.title}</span>
-                    <span className="block text-[11px] text-subtle-foreground">{t.subtitle}</span>
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <p className="line-clamp-2 text-xs text-muted-foreground">{excerpt(pkg.description, 90)}</p>
-        )}
-
-        <div className="mt-auto flex items-center justify-between gap-2 pt-1">
-          <div>
-            <span className="block text-[10px] font-display uppercase tracking-widest text-subtle-foreground">
-              Price
-            </span>
-            <span className="lscnr-price text-xl">{formatPrice(pkg.total_price, pkg.currency)}</span>
-          </div>
-          <BadgeCheck className="h-4 w-4 text-gold/70" />
-        </div>
-
-        <div className="flex gap-2">
-          <Link href={packageHref(pkg)} className="flex-1">
-            <Button variant="outline" size="sm" className="w-full font-display uppercase tracking-wide">
-              Details
-            </Button>
-          </Link>
-          <Button
-            variant="gta"
-            size="sm"
-            className="flex-1"
-            loading={adding}
-            onClick={handleAdd}
-          >
-            Add to cart
-          </Button>
-        </div>
-      </CardBody>
+      <Button
+        variant="gta"
+        size="xs"
+        loading={adding}
+        onClick={handleAdd}
+        className="absolute bottom-3.5 right-3.5 z-20"
+      >
+        {inCart ? "Added" : "Add"}
+      </Button>
     </article>
   );
 }

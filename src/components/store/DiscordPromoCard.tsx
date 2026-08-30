@@ -1,38 +1,38 @@
 import Link from "next/link";
-import { CardBody, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { cn } from "@/components/ui/cn";
 import { getDiscordInvite } from "@/lib/site";
 import { PromoCountdown } from "./PromoCountdown";
-import { GlassBadge } from "./GlassBadge";
 
 export function DiscordPromoCard({ className }: { className?: string }) {
   const invite = getDiscordInvite();
 
   return (
-    <div className={className}>
-      <div className="lscnr-panel overflow-hidden rounded-sm">
-        <div className="lscnr-beacon-bar" />
-        <CardBody className="space-y-4 p-6">
-          <CardTitle className="lscnr-heading text-2xl text-foreground">Discord Community</CardTitle>
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            Join our Discord for events, support tickets, custom order requests, and updates from the
-            LSCNR team.
-          </p>
-          <PromoCountdown />
-          {invite ? (
-            <Link href={invite} target="_blank" rel="noopener noreferrer" className="block">
-              <Button variant="gta" size="md" className="w-full">
-                Discord Community
-              </Button>
-            </Link>
-          ) : (
-            <Button variant="gta" size="md" className="w-full" disabled>
-              Discord link soon
-            </Button>
-          )}
-        </CardBody>
+    <section
+      className={cn(
+        "cas-cta relative overflow-hidden px-6 py-8 sm:flex sm:items-center sm:justify-between sm:gap-8 sm:px-8",
+        className
+      )}
+    >
+      <div className="max-w-xl space-y-2">
+        <p className="lscnr-eyebrow">Community</p>
+        <h2 className="lscnr-heading text-2xl text-foreground">Need help or a custom order?</h2>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          Tickets, clothing, liveries, and support live on Discord. Purchases deliver in-game through Tebex.
+        </p>
+        <PromoCountdown />
       </div>
-      <GlassBadge className="mt-4 lg:hidden" />
-    </div>
+      {invite ? (
+        <Link href={invite} target="_blank" rel="noopener noreferrer" className="mt-5 block sm:mt-0">
+          <Button variant="gta" size="lg" className="px-6">
+            Open Discord
+          </Button>
+        </Link>
+      ) : (
+        <Button variant="gta" size="lg" className="mt-5 px-6 sm:mt-0" disabled>
+          Discord soon
+        </Button>
+      )}
+    </section>
   );
 }

@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AdminNav } from "@/components/admin/AdminNav";
+import { BrandLogo } from "@/components/layout/BrandLogo";
 import { isAdminAuthenticated, isAdminConfigured } from "@/lib/admin-auth";
-import { SITE_BRAND } from "@/lib/site";
 
 export const metadata = {
   title: "Admin",
@@ -25,16 +25,9 @@ export default async function AdminLayout({
     <div className="flex min-h-screen flex-col lg:flex-row">
       <aside className="border-b border-border bg-surface/60 lg:w-64 lg:shrink-0 lg:border-b-0 lg:border-r">
         <div className="flex items-center justify-between gap-2 px-5 py-4">
-          <Link href="/admin" className="flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-sm border border-border/50 lscnr-logo-badge font-display text-lg font-extrabold">
-              L
-            </span>
-            <span>
-              <span className="lscnr-heading block text-sm leading-none">{SITE_BRAND}</span>
-              <span className="block font-display text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                Admin
-              </span>
-            </span>
+          <Link href="/admin" className="flex items-center gap-3">
+            <BrandLogo className="h-9" />
+            <span className="text-[11px] text-muted-foreground">Admin</span>
           </Link>
         </div>
         <div className="px-3 pb-4 lg:sticky lg:top-0">

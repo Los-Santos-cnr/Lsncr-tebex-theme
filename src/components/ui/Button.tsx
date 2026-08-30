@@ -23,9 +23,9 @@ const VARIANTS: Record<Variant, string> = {
     "bg-danger/10 text-danger border border-danger/30 hover:bg-danger/15 hover:border-danger/40",
   success:
     "bg-success/10 text-success border border-success/30 hover:bg-success/15 hover:border-success/40",
+  gta: "bg-gold text-gold-foreground border border-gold hover:bg-gold/90 font-display uppercase tracking-[0.16em] font-semibold",
   pill:
-    "bg-cop text-cop-foreground border border-cop hover:bg-cop/90 font-display font-bold uppercase tracking-widest",
-  gta: "bg-cop text-cop-foreground border border-cop hover:bg-cop/90 shadow-[0_0_20px_-4px_rgb(37_99_235/0.5)] font-display font-bold uppercase tracking-wide",
+    "bg-gold text-gold-foreground border border-gold hover:bg-gold/90 font-display uppercase tracking-[0.16em] font-semibold",
 };
 
 const SIZES: Record<Size, string> = {
@@ -45,7 +45,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       ref={ref}
       disabled={disabled || loading}
       className={cn(
-        "inline-flex items-center justify-center rounded-sm font-medium transition-colors focus-ring disabled:opacity-50 disabled:pointer-events-none font-sans",
+        "inline-flex items-center justify-center rounded-sm font-medium transition-colors focus-ring disabled:opacity-50 disabled:pointer-events-none",
         VARIANTS[variant],
         SIZES[size],
         className

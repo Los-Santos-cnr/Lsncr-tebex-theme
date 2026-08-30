@@ -3,9 +3,10 @@ import { StoreShell } from "@/components/layout/StoreShell";
 import { PageContainer, PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody } from "@/components/ui/Card";
-import { getBasket, isTebexConfigured } from "@/lib/tebex";
+import { getBasket, getBasketLine, isTebexConfigured } from "@/lib/tebex";
 import { formatPrice } from "@/lib/format";
 import { getDiscordInvite } from "@/lib/site";
+import { ClearPaidCart } from "@/components/store/ClearPaidCart";
 
 export const metadata = { title: "Thank you" };
 
@@ -26,8 +27,8 @@ export default async function CheckoutCompletePage({
         total: basket.total_price,
         currency: basket.currency,
         items: (basket.packages ?? [])
-          .map((p) => p.package?.name)
-          .filter(Boolean) as string[],
+          .map((p) => getBasketLine(p).name)
+          .filter((name) => name && name !== "Package"),
       };
     } catch {
       summary = null;
@@ -43,6 +44,7 @@ export default async function CheckoutCompletePage({
         />
         <Card className="mx-auto max-w-lg rounded-xl">
           <CardBody className="space-y-4 text-center">
+            <ClearPaidCart />
             <p className="text-sm text-muted-foreground">
               Packages are delivered to your linked CFX account. It may take a moment after
               payment completes.

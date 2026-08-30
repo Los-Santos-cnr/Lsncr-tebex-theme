@@ -2,16 +2,18 @@ export const SITE_NAME = "Los Santos Cops and Robbers";
 export const SITE_BRAND = "LSCNR";
 export const SITE_METADATA_TITLE = "Los Santos Cops and Robbers | Welcome";
 export const SITE_METADATA_DESCRIPTION =
-  "Support Los Santos Cops and Robbers — buy memberships with queue priority, Discord perks, exclusive vehicles, and more.";
+  "Support Los Santos Cops and Robbers. VIP memberships with queue priority, exclusive vehicles, VIP Ammunation, and more.";
 
-export const HOME_EYEBROW = "Los Santos Cops and Robbers · FiveM";
-export const HOME_HEADLINE = "Welcome to the Los Santos Cops and Robbers";
+export const HOME_EYEBROW = "Premium FiveM Store";
+export const HOME_HEADLINE = "Cops & Robbers";
 export const HOME_SUBTITLE =
-  "Here you can buy Memberships with exclusive benefits, such as queue priority, a special discord role and channel, and vehicles (Silver & Gold). We also sell Queue Priority Tokens (WIP) and Name Change Tokens (WIP) separately. Every purchase supports us immensely and allows us to create more awesome content, host exciting events, and pay for server hosting. We appreciate every single donator. 💙";
+  "A PvP cops versus robbers server. VIP memberships add queue priority, exclusive vehicles, and in-game perks.";
 export const HERO_BADGE_TEXT = "Cops vs Robbers · FiveM";
 
 export const MAIN_SITE_URL = "https://lscnr.net";
 export const FIVEM_CONNECT_URL = "https://cfx.re/join/lscnr";
+export const DISCORD_INVITE = "https://discord.gg/lscnr";
+export const TEBEX_PAYMENT_HISTORY_URL = "https://checkout.tebex.io/payment-history/";
 
 /** Marketing banner shown across the top of the store. */
 export const PROMO_BANNER_TEXT = "Subscription discounts!";
@@ -22,7 +24,7 @@ export const TRUST_STATS: { label: string }[] = [
   { label: "Trusted by the LSCNR Community" },
 ];
 
-/** "What you get" offering cards — the things players actually buy. */
+/** "What you get" offering cards: the things players actually buy. */
 export const OFFERINGS: {
   icon: "membership" | "queue" | "name" | "gift";
   title: string;
@@ -33,7 +35,7 @@ export const OFFERINGS: {
     icon: "membership",
     title: "Memberships",
     description:
-      "Silver & Gold tiers with queue priority, a special Discord role and channel, and exclusive vehicles.",
+      "Silver, Gold, and Platinum tiers with queue priority, exclusive dealership vehicles, VIP Ammunation discounts, and extra properties.",
   },
   {
     icon: "queue",
@@ -65,6 +67,9 @@ export const PACKAGE_TRUST: {
   { icon: "support", title: "Dedicated Support", subtitle: "Join our Discord community" },
 ];
 
+export const REFUND_POLICY =
+  "No refunds. Digital packages are sold through Tebex, and we follow Tebex's refund policy. All purchases are final. Chargebacks or payment disputes result in a permanent ban from all of our services.";
+
 /** Help-center FAQ shown on the homepage accordion. */
 export const HOME_FAQ: { question: string; answer: string }[] = [
   {
@@ -90,16 +95,15 @@ export const HOME_FAQ: { question: string; answer: string }[] = [
   {
     question: "Why do I need to login with FiveM?",
     answer:
-      "Logging in with FiveM links your purchase to the correct in-game character so we can deliver your perks in the city.",
+      "Logging in with FiveM links your purchase to the right account so we can deliver VIP perks in-game.",
   },
   {
     question: "Can I use a coupon or promo code?",
-    answer: "Yes — apply your code on the cart page before you check out.",
+    answer: "Yes. Apply your code on the cart page before you check out.",
   },
   {
     question: "What is the refund policy?",
-    answer:
-      "If you are not satisfied you may request a refund within 24 hours. Chargebacks or PayPal disputes result in a permanent ban from all of our services.",
+    answer: REFUND_POLICY,
   },
 ];
 
@@ -123,7 +127,7 @@ export function getHeroImage() {
 }
 
 export function getDiscordInvite() {
-  return process.env.NEXT_PUBLIC_DISCORD_INVITE?.trim() || null;
+  return process.env.NEXT_PUBLIC_DISCORD_INVITE?.trim() || DISCORD_INVITE;
 }
 
 export function getSaleEndsAt() {

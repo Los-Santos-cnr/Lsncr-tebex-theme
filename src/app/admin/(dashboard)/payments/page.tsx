@@ -57,11 +57,11 @@ export default async function PaymentsPage() {
                   {payments.map((p) => (
                     <tr key={p.id}>
                       <td className="px-5 py-3">
-                        <p className="font-medium">{p.player?.name ?? p.email ?? "—"}</p>
+                        <p className="font-medium">{p.player?.name ?? p.email ?? "-"}</p>
                         <p className="text-xs text-muted-foreground">#{p.id}</p>
                       </td>
                       <td className="px-5 py-3 text-muted-foreground">
-                        {p.packages?.map((pkg) => pkg.name).join(", ") || "—"}
+                        {p.packages?.map((pkg) => pkg.name).join(", ") || "-"}
                       </td>
                       <td className="px-5 py-3 text-muted-foreground">
                         {new Date(p.date).toLocaleDateString()}

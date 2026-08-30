@@ -1,31 +1,39 @@
 "use client";
 
-import Script from "next/script";
-
-export function TebexScript() {
-  return (
-    <Script
-      src="https://js.tebex.io/v/1/tebex.js"
-      strategy="lazyOnload"
-    />
-  );
-}
+import Tebex from "@tebexio/tebex.js";
 
 declare global {
   interface Window {
-    Tebex?: {
-      checkout: {
-        init: (config: { ident: string; theme?: string }) => void;
-        launch: () => void;
-      };
-    };
+    Tebex?: typeof Tebex;
   }
 }
 
-export function launchTebexCheckout(ident: string) {
-  if (!window.Tebex?.checkout) {
-    throw new Error("Tebex.js is not loaded yet");
+export function TebexScript() {
+  return null;
+}
+
+function hostedCheckoutUrl(ident: string, checkoutUrl?: string | null) {
+  if (checkoutUrl && /^https?:\/\//i.test(checkoutUrl)) return checkoutUrl;
+  return `https://pay.tebex.io/${ident}`;
+}
+
+export async function launchTebexCheckout(
+  ident: string,
+  options?: { onPaid?: () => void; checkoutUrl?: string | null }
+) {
+  const fallback = hostedCheckoutUrl(ident, options?.checkoutUrl);
+
+  try {
+    Tebex.checkout.init({
+      ident,
+      theme: "dark",
+      launchTimeout: 4000,
+    });
+    if (options?.onPaid) {
+      Tebex.checkout.on("payment:complete", options.onPaid);
+    }
+    await Tebex.checkout.launch();
+  } catch {
+    window.location.assign(fallback);
   }
-  window.Tebex.checkout.init({ ident, theme: "dark" });
-  window.Tebex.checkout.launch();
 }

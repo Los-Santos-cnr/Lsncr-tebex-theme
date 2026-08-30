@@ -20,7 +20,7 @@ export function SectionLabel({
       )}
     >
       <span className="section-eyebrow">{eyebrow}</span>
-      <h2 className="lscnr-heading text-2xl text-foreground sm:text-3xl">{title}</h2>
+      <h2 className="lscnr-heading text-2xl text-foreground sm:text-[1.85rem]">{title}</h2>
     </div>
   );
 }

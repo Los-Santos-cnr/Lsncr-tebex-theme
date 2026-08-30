@@ -19,9 +19,9 @@
 
 ## Third parties
 
-- **Tebex** — payment processing and basket authentication
-- **Vercel** — website hosting
-- **Discord** — community support (optional widget/member counts)
+- **Tebex**: payment processing and basket authentication
+- **Vercel**: website hosting
+- **Discord**: community support (optional widget/member counts)
 
 ## Contact
 

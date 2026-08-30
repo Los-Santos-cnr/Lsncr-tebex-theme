@@ -1,39 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
-import { AuthGate, CheckoutButton, CouponForm } from "@/components/store/CheckoutButton";
+import { CheckoutButton, CheckoutDetails, CouponForm } from "@/components/store/CheckoutButton";
 import { CartLineItem } from "@/components/store/CartLineItem";
+import { TrustStrip } from "@/components/store/TrustStrip";
 import { Card, CardBody, CardTitle } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/Section";
 import { Button } from "@/components/ui/Button";
-import { formatPrice } from "@/lib/format";
-import { ensureBasket, refreshBasket, syncBasketAfterAuth, useCartStore } from "@/stores/useCartStore";
+import { Price } from "@/components/store/Price";
+import { useCurrency } from "@/components/providers/CurrencyProvider";
+import { useCartStore } from "@/stores/useCartStore";
 
 export function CartPageClient() {
-  const basket = useCartStore((s) => s.basket);
-  const basketIdent = useCartStore((s) => s.basketIdent);
+  const localItems = useCartStore((s) => s.localItems);
   const isLoading = useCartStore((s) => s.isLoading);
   const hasHydrated = useCartStore((s) => s.hasHydrated);
+  const { currency } = useCurrency();
 
-  useEffect(() => {
-    if (!hasHydrated) return;
+  if (!hasHydrated) {
+    return <p className="text-sm text-muted-foreground">Loading cart…</p>;
+  }
 
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("success") === "true" && basketIdent) {
-      syncBasketAfterAuth().catch(() => undefined);
-      return;
-    }
-
-    if (basketIdent) {
-      refreshBasket().catch(() => ensureBasket().catch(() => undefined));
-      return;
-    }
-
-    ensureBasket().catch(() => undefined);
-  }, [hasHydrated, basketIdent]);
-
-  if (!basket || !basketIdent) {
+  if (!localItems.length) {
     return (
       <EmptyState
         title="Your cart is empty"
@@ -47,20 +35,18 @@ export function CartPageClient() {
     );
   }
 
-  const items = basket.packages ?? [];
+  const subtotal = localItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const storeCurrency = localItems[0]?.currency ?? "EUR";
+  const chargedInStoreCurrency = storeCurrency.toUpperCase() !== currency;
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <Card className="lg:col-span-2 rounded-xl">
         <CardBody>
           <CardTitle className="mb-2">Cart items</CardTitle>
-          {items.length ? (
-            items.map((item, index) => (
-              <CartLineItem key={`${item.package?.id ?? index}`} item={item} />
-            ))
-          ) : (
-            <EmptyState title="No items yet" description="Add packages from the store." />
-          )}
+          {localItems.map((item) => (
+            <CartLineItem key={item.packageId} item={item} />
+          ))}
         </CardBody>
       </Card>
 
@@ -71,24 +57,33 @@ export function CartPageClient() {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Subtotal</span>
-                <span>{formatPrice(basket.base_price, basket.currency)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Tax</span>
-                <span>{formatPrice(basket.sales_tax, basket.currency)}</span>
+                <span>
+                  <Price amount={subtotal} from={storeCurrency} />
+                </span>
               </div>
               <div className="flex justify-between border-t border-border pt-2 font-semibold">
                 <span>Total</span>
                 <span className="text-primary">
-                  {formatPrice(basket.total_price, basket.currency)}
+                  <Price amount={subtotal} from={storeCurrency} />
                 </span>
               </div>
             </div>
-            <CouponForm basketIdent={basketIdent} />
-            <AuthGate basketIdent={basketIdent} />
-            <CheckoutButton basket={basket} />
+            {chargedInStoreCurrency ? (
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Displayed in {currency}. Tebex will charge {storeCurrency.toUpperCase()} at
+                checkout. Tax is calculated when you pay.
+              </p>
+            ) : (
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Tax is calculated when you pay.
+              </p>
+            )}
+            <CouponForm />
+            <CheckoutDetails />
+            <CheckoutButton total={subtotal} currency={storeCurrency} />
+            <TrustStrip />
             {isLoading ? (
-              <p className="text-center text-xs text-muted-foreground">Updating cart…</p>
+              <p className="text-center text-xs text-muted-foreground">Preparing checkout…</p>
             ) : null}
           </CardBody>
         </Card>

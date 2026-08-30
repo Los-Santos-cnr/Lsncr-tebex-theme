@@ -10,7 +10,7 @@ The fastest way to get help is through our Discord server. Create a payment supp
 - Tebex transaction ID (if applicable)
 - Package name and issue description
 
-For **clothing, billboards, car liveries, and other in-game customizations**, open a payment support ticket on Discord — we cannot list prices for custom work before the customization is made.
+For **clothing, billboards, car liveries, and other in-game customizations**, open a payment support ticket on Discord. We cannot list prices for custom work before the customization is made.
 
 ## Purchase issues
 
@@ -22,4 +22,4 @@ If a package did not deliver:
 
 ## Refunds
 
-If you are not satisfied you may request a refund within 24 hours. Chargebacks or PayPal disputes result in a permanent ban from all of our services.
+No refunds. Digital packages are sold through Tebex, and we follow Tebex's refund policy. All purchases are final. Chargebacks or payment disputes result in a permanent ban from all of our services.

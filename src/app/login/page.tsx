@@ -11,9 +11,9 @@ export default function LoginPage() {
     <StoreShell>
       <PageContainer>
         <PageHeader
-          title="Link your character"
+          title="Link your FiveM account"
           eyebrow="CFX · FiveM"
-          description="Connect your FiveM account so purchases land on the right character in Los Santos."
+          description="Connect your FiveM account so purchases are delivered to the right player."
         />
         <LoginPageClient />
       </PageContainer>

@@ -9,6 +9,13 @@ export interface TebexCategory {
   parent?: TebexCategory | null;
 }
 
+export interface TebexPackageOption {
+  name: string;
+  description?: string;
+  type?: string;
+  required?: boolean;
+}
+
 export interface TebexPackage {
   id: number;
   name: string;
@@ -27,6 +34,8 @@ export interface TebexPackage {
   created_at: string;
   updated_at: string;
   order: number;
+  options?: TebexPackageOption[];
+  variables?: unknown[];
   sale?: {
     active: boolean;
     discount: number;
@@ -34,8 +43,21 @@ export interface TebexPackage {
 }
 
 export interface TebexBasketPackage {
-  qty: number;
-  type: string;
+  id: number;
+  name?: string;
+  description?: string;
+  image?: string | null;
+  slug?: string | null;
+  type?: string;
+  qty?: number;
+  in_basket?: {
+    quantity?: number;
+    price?: number;
+    type?: string;
+    gift_username?: string | null;
+    gift_username_id?: string | null;
+  };
+  /** Older nested shape still returned by some basket mutations. */
   package?: TebexPackage;
 }
 

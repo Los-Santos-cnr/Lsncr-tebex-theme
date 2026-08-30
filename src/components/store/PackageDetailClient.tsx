@@ -4,9 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { TrustStrip } from "@/components/store/TrustStrip";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { formatPrice } from "@/lib/format";
+import { Price } from "@/components/store/Price";
 import { packageHref } from "@/lib/tebex";
 import type { TebexPackage } from "@/lib/tebex-types";
 import { addToCart } from "@/stores/useCartStore";
@@ -23,28 +24,23 @@ export function PackageDetailClient({
   const [loading, setLoading] = useState(false);
   const onSale = (pkg.discount ?? 0) > 0 || pkg.sale?.active;
 
-  async function handleAdd(goToCart = false) {
+  function handleAdd(goToCart = false) {
     setLoading(true);
-    try {
-      await addToCart(pkg.id, quantity);
-      if (goToCart) router.push("/cart");
-    } catch {
-      alert("Could not add to cart.");
-    } finally {
-      setLoading(false);
-    }
+    addToCart(pkg, quantity);
+    if (goToCart) router.push("/cart");
+    window.setTimeout(() => setLoading(false), 250);
   }
 
   return (
     <div className="space-y-10">
       <div className="grid gap-8 lg:grid-cols-2">
-        <div className="lscnr-panel relative aspect-square overflow-hidden rounded-sm bg-surface-2 p-6">
+        <div className="lscnr-panel relative aspect-square overflow-hidden rounded-lg bg-surface-2">
           {pkg.image ? (
             <Image
               src={pkg.image}
               alt={pkg.name}
               fill
-              className="object-contain"
+              className="object-contain p-8"
               sizes="600px"
               priority
             />
@@ -56,22 +52,16 @@ export function PackageDetailClient({
         </div>
         <div className="space-y-4">
           <div className="flex flex-wrap gap-2">
-            {onSale ? (
-              <Badge tone="warning" className="font-display tracking-wider">
-                Sale
-              </Badge>
-            ) : null}
-            <Badge tone="neutral" className="font-display tracking-wider">
-              {pkg.category.name}
-            </Badge>
+            {onSale ? <Badge tone="warning">Sale</Badge> : null}
+            <Badge tone="neutral">{pkg.category.name}</Badge>
           </div>
           <h1 className="lscnr-heading text-3xl text-foreground">{pkg.name}</h1>
-          <p className="lscnr-price text-3xl">{formatPrice(pkg.total_price, pkg.currency)}</p>
+          <p className="lscnr-price text-3xl">
+            <Price amount={pkg.total_price} from={pkg.currency} />
+          </p>
           {!pkg.disable_quantity ? (
             <div className="flex items-center gap-2">
-              <span className="font-display text-xs uppercase tracking-wider text-muted-foreground">
-                Qty
-              </span>
+              <span className="text-sm text-muted-foreground">Qty</span>
               <Button
                 variant="outline"
                 size="icon"
@@ -79,7 +69,7 @@ export function PackageDetailClient({
               >
                 −
               </Button>
-              <span className="w-8 text-center font-display text-sm font-bold">{quantity}</span>
+              <span className="w-8 text-center text-sm font-semibold">{quantity}</span>
               <Button
                 variant="outline"
                 size="icon"
@@ -102,8 +92,9 @@ export function PackageDetailClient({
               Buy now
             </Button>
           </div>
+          <TrustStrip />
           <div
-            className="prose prose-sm dark:prose-invert max-w-none text-sm text-muted-foreground"
+            className="lscnr-prose max-w-none text-sm"
             dangerouslySetInnerHTML={{ __html: pkg.description }}
           />
         </div>
@@ -117,11 +108,11 @@ export function PackageDetailClient({
               <Link
                 key={item.id}
                 href={packageHref(item)}
-                className="lscnr-panel rounded-sm p-3 transition-colors hover:border-cop/35"
+                className="lscnr-panel rounded-lg p-3 transition-colors hover:border-robber/35"
               >
-                <p className="font-display text-sm font-bold uppercase tracking-wide">{item.name}</p>
+                <p className="text-sm font-semibold">{item.name}</p>
                 <p className="lscnr-price mt-1 text-sm">
-                  {formatPrice(item.total_price, item.currency)}
+                  <Price amount={item.total_price} from={item.currency} />
                 </p>
               </Link>
             ))}

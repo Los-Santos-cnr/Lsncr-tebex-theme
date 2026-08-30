@@ -41,7 +41,7 @@ export default async function PackagesPage() {
         }
       />
       <p className="rounded-md border border-border bg-surface/50 px-4 py-3 text-xs text-muted-foreground">
-        Tebex&apos;s API does not support creating brand-new packages — add new products in the Tebex
+        Tebex&apos;s API does not support creating brand-new packages. Add new products in the Tebex
         Creator panel, then edit their name, price, and availability here.
       </p>
       {!apiConfigured ? <ApiNotConfiguredNotice /> : <PackagesClient packages={rows} />}

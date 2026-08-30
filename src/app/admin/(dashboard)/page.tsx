@@ -64,7 +64,7 @@ export default async function AdminDashboard() {
               <p className="text-xs font-medium uppercase tracking-wider text-subtle-foreground">
                 Store
               </p>
-              <p className="mt-1 lscnr-heading text-lg">{info?.account?.name ?? "—"}</p>
+              <p className="mt-1 lscnr-heading text-lg">{info?.account?.name ?? "-"}</p>
               <p className="text-sm text-muted-foreground">{info?.account?.domain ?? ""}</p>
             </CardBody>
           </div>
@@ -74,7 +74,7 @@ export default async function AdminDashboard() {
                 Currency
               </p>
               <p className="mt-1 lscnr-heading text-lg">
-                {info?.account?.currency?.iso_4217 ?? "—"}{" "}
+                {info?.account?.currency?.iso_4217 ?? "-"}{" "}
                 <span className="text-muted-foreground">{info?.account?.currency?.symbol}</span>
               </p>
             </CardBody>
@@ -84,7 +84,7 @@ export default async function AdminDashboard() {
               <p className="text-xs font-medium uppercase tracking-wider text-subtle-foreground">
                 Linked server
               </p>
-              <p className="mt-1 lscnr-heading text-lg">{info?.server?.name ?? "—"}</p>
+              <p className="mt-1 lscnr-heading text-lg">{info?.server?.name ?? "-"}</p>
             </CardBody>
           </div>
         </div>

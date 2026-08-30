@@ -102,7 +102,7 @@ export function FeaturedCarousel({
               onClick={() => goTo(i)}
               className={cn(
                 "h-2 w-2 rounded-full transition-colors",
-                i === safeIndex ? "bg-gold" : "bg-border hover:bg-border-strong"
+                i === safeIndex ? "bg-robber" : "bg-border hover:bg-border-strong"
               )}
             />
           ))}
