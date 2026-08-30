@@ -21,6 +21,34 @@ const PODIUM_STYLES = [
   },
 ] as const;
 
+function formatShare(score: number) {
+  if (score <= 0) return "0";
+  if (score < 0.1) return "<0.1";
+  const rounded = Math.round(score * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
+function ScoreMark({
+  score,
+  className,
+}: {
+  score: number;
+  className?: string;
+}) {
+  const label = formatShare(score);
+  return (
+    <span className={cn("flex min-w-[2.75rem] flex-col justify-center gap-1", className)}>
+      <span className="font-display text-[10px] font-semibold leading-none tracking-wide text-gold">
+        {label}%
+      </span>
+      <span className="block h-0.5 w-full overflow-hidden rounded-full bg-white/10" aria-hidden>
+        <span className="block h-full rounded-full bg-gold" style={{ width: `${Math.min(100, score)}%` }} />
+      </span>
+      <span className="sr-only">{label} percent of all support on this board</span>
+    </span>
+  );
+}
+
 export function SupportersBoard({ supporters }: { supporters: PublicSupporter[] }) {
   if (!supporters.length) {
     return (
@@ -68,6 +96,9 @@ export function SupportersBoard({ supporters }: { supporters: PublicSupporter[] 
                 <p className="mt-2 text-xs text-muted-foreground">
                   {index === 0 ? "Our most generous supporter" : `Rank ${supporter.rank}`}
                 </p>
+                <div className="mx-auto mt-3 w-16">
+                  <ScoreMark score={supporter.score} className="items-center" />
+                </div>
               </li>
             );
           })}
@@ -89,6 +120,7 @@ export function SupportersBoard({ supporters }: { supporters: PublicSupporter[] 
                 <span className="w-10 shrink-0 font-display text-sm font-semibold text-gold">
                   {String(supporter.rank).padStart(3, "0")}
                 </span>
+                <ScoreMark score={supporter.score} />
                 <span
                   className={cn(
                     "min-w-0 truncate text-sm text-foreground",

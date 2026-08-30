@@ -18,6 +18,8 @@ export type PublicSupporter = {
   rank: number;
   id: string;
   name: string | null;
+  /** Share of all named supporters on this board, 0–100. Not a currency amount. */
+  score: number;
 };
 
 type RankedSpender = {
@@ -130,44 +132,43 @@ async function fromRecentSidebar() {
   return map;
 }
 
-function toPublicList(map: Map<string, RankedSpender>): PublicSupporter[] {
-  return [...map.values()]
-    .sort((a, b) => b.total - a.total || a.id.localeCompare(b.id))
-    .slice(0, TOP_SUPPORTERS_CANDIDATES)
-    .map((supporter) => ({
-      rank: 0,
-      id: supporter.id,
-      name: null,
-    }));
+function shareOfTotal(total: number, grandTotal: number) {
+  if (!Number.isFinite(total) || total <= 0 || !(grandTotal > 0)) return 0;
+  return Math.min(100, (100 * total) / grandTotal);
 }
 
-async function withPlayerNames(supporters: PublicSupporter[]): Promise<PublicSupporter[]> {
-  if (!supporters.length) return supporters;
-  if (!isPlayerLookupConfigured()) {
-    return supporters.slice(0, TOP_SUPPORTERS_LIMIT).map((supporter, index) => ({
-      ...supporter,
-      rank: index + 1,
-    }));
+function toCandidateList(map: Map<string, RankedSpender>): RankedSpender[] {
+  return [...map.values()]
+    .sort((a, b) => b.total - a.total || a.id.localeCompare(b.id))
+    .slice(0, TOP_SUPPORTERS_CANDIDATES);
+}
+
+async function withPlayerNames(spenders: RankedSpender[]): Promise<PublicSupporter[]> {
+  if (!spenders.length) return [];
+
+  let picked = spenders;
+  let names = new Map<number, string>();
+
+  if (isPlayerLookupConfigured()) {
+    names = await lookupPlayerNames(spenders.map((spender) => spender.id));
+    picked = spenders.filter((spender) => names.has(parseFiveMId(spender.id) ?? -1));
   }
 
-  const names = await lookupPlayerNames(supporters.map((supporter) => supporter.id));
-  return supporters
-    .map((supporter) => ({
-      ...supporter,
-      name: names.get(parseFiveMId(supporter.id) ?? -1) ?? null,
-    }))
-    .filter((supporter) => Boolean(supporter.name))
-    .slice(0, TOP_SUPPORTERS_LIMIT)
-    .map((supporter, index) => ({
-      ...supporter,
-      rank: index + 1,
-    }));
+  picked = picked.slice(0, TOP_SUPPORTERS_LIMIT);
+  const grandTotal = picked.reduce((sum, spender) => sum + spender.total, 0);
+
+  return picked.map((spender, index) => ({
+    rank: index + 1,
+    id: spender.id,
+    name: names.get(parseFiveMId(spender.id) ?? -1) ?? null,
+    score: shareOfTotal(spender.total, grandTotal),
+  }));
 }
 
 export async function getTopSupporters(): Promise<PublicSupporter[]> {
   if (isAdminApiConfigured()) {
     try {
-      const ranked = toPublicList(fromPluginPayments(await listPaymentsHistory(80)));
+      const ranked = toCandidateList(fromPluginPayments(await listPaymentsHistory(80)));
       if (ranked.length) return withPlayerNames(ranked);
     } catch (error) {
       console.error("top supporters:", error);
@@ -175,14 +176,14 @@ export async function getTopSupporters(): Promise<PublicSupporter[]> {
   }
 
   try {
-    const fromOrders = toPublicList(await fromDatabase());
+    const fromOrders = toCandidateList(await fromDatabase());
     if (fromOrders.length) return withPlayerNames(fromOrders);
   } catch (error) {
     console.error("top supporters database:", error);
   }
 
   try {
-    return withPlayerNames(toPublicList(await fromRecentSidebar()));
+    return withPlayerNames(toCandidateList(await fromRecentSidebar()));
   } catch (error) {
     console.error("top supporters sidebar:", error);
     return [];
