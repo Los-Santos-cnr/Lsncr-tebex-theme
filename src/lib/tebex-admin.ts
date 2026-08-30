@@ -141,7 +141,7 @@ export interface TebexPayment {
   status: string;
   email?: string;
   player?: { id: number; name: string; uuid: string };
-  packages?: { id: number; name: string }[];
+  packages?: { id: number; name: string; quantity?: number; qty?: number }[];
 }
 
 /* --------------------------- Store info --------------------------- */

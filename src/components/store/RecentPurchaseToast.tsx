@@ -1,14 +1,48 @@
 "use client";
 
-import { ShoppingBag } from "lucide-react";
+import { Crown, Heart } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { cn } from "@/components/ui/cn";
-import { formatTimeAgo, type RecentPurchase } from "@/lib/recent-purchases";
+import { formatTimeAgo, purchaseVerb, type RecentPurchase } from "@/lib/recent-purchases";
 
 const SHOW_MS = 7200;
 const HIDE_MS = 400;
 const GAP_MS = 350;
+
+function RankMark({ rank }: { rank?: number | null }) {
+  if (rank == null || rank < 1) {
+    return (
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/5 text-gold">
+        <Heart className="h-3.5 w-3.5" aria-hidden />
+        <span className="sr-only">Supporter</span>
+      </span>
+    );
+  }
+
+  const podium =
+    rank === 1
+      ? "border-gold/55 bg-gold/15 text-gold"
+      : rank === 2
+        ? "border-[#c0c0c0]/40 bg-white/10 text-[#d8d8d8]"
+        : rank === 3
+          ? "border-[#cd7f32]/45 bg-[#cd7f32]/15 text-[#e0a36b]"
+          : "border-gold/30 bg-gold/10 text-gold";
+
+  return (
+    <span className={cn("flex size-10 shrink-0 flex-col items-center justify-center rounded-md border", podium)}>
+      {rank === 1 ? (
+        <Crown className="mb-0.5 h-3 w-3" aria-hidden />
+      ) : (
+        <span className="text-[8px] font-semibold uppercase leading-none tracking-[0.12em] opacity-70">Top</span>
+      )}
+      <span className="font-display text-[13px] font-semibold leading-none tabular-nums">
+        {String(rank).padStart(3, "0")}
+      </span>
+      <span className="sr-only">Top supporter rank {rank}</span>
+    </span>
+  );
+}
 
 export function RecentPurchaseToast() {
   const [items, setItems] = useState<RecentPurchase[]>([]);
@@ -23,7 +57,19 @@ export function RecentPurchaseToast() {
         .then((res) => (res.ok ? res.json() : null))
         .then((payload: { data?: RecentPurchase[] } | null) => {
           if (cancelled || !payload?.data?.length) return;
-          setItems(payload.data);
+          setItems((current) => {
+            const next = payload.data ?? [];
+            const same =
+              current.length === next.length &&
+              current.every(
+                (row, index) =>
+                  row.id === next[index]?.id &&
+                  row.rank === next[index]?.rank &&
+                  row.action === next[index]?.action &&
+                  row.quantity === next[index]?.quantity
+              );
+            return same ? current : next;
+          });
         })
         .catch(() => undefined);
     };
@@ -71,44 +117,39 @@ export function RecentPurchaseToast() {
   const purchase = items[index % items.length];
   if (!purchase) return null;
 
+  const quantity = purchase.quantity && purchase.quantity > 1 ? purchase.quantity : null;
+  const verb = purchaseVerb(purchase.action);
+  const itemName = (
+    <>
+      {purchase.href ? (
+        <Link href={purchase.href} className="text-gold underline-offset-2 hover:underline">
+          {purchase.item}
+        </Link>
+      ) : (
+        <span className="text-gold">{purchase.item}</span>
+      )}
+      {quantity ? <span className="text-gold"> ×{quantity}</span> : null}
+    </>
+  );
+
   return (
     <aside
       aria-live="polite"
       className={cn(
-        "purchase-toast pointer-events-none fixed bottom-4 right-4 z-40 w-[min(calc(100%-1.5rem),28rem)]",
+        "purchase-toast pointer-events-none fixed bottom-6 right-4 z-40 max-w-[calc(100%-2rem)]",
         open && "purchase-toast--in"
       )}
     >
-      <div className="pointer-events-auto flex items-start gap-3 rounded-lg border border-gold/25 bg-black/85 px-3 py-2.5 shadow-pop chrome-blur">
-        <span className="relative mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md bg-gold/15 text-gold">
-          {purchase.avatar ? (
-            <img
-              src={purchase.avatar}
-              alt=""
-              className="h-full w-full scale-125 object-cover blur-[5px]"
-            />
-          ) : (
-            <ShoppingBag className="h-4 w-4" />
-          )}
-        </span>
-        <span className="min-w-0">
-          <span className="block text-sm leading-snug text-foreground">
-            <strong className="font-semibold">{purchase.buyer}</strong> purchased{" "}
-            {purchase.href ? (
-              <Link
-                href={purchase.href}
-                className="text-gold underline-offset-2 hover:underline"
-              >
-                {purchase.item}
-              </Link>
-            ) : (
-              <span className="text-gold">{purchase.item}</span>
-            )}
-          </span>
-          <span className="mt-0.5 block text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+      <div className="pointer-events-auto flex w-max max-w-full items-center gap-2.5 rounded-lg border border-gold/35 bg-black/92 py-2 pl-2 pr-3.5 shadow-pop chrome-blur">
+        <RankMark rank={purchase.rank} />
+        <div>
+          <p className="text-[13px] leading-5 text-foreground">
+            <strong className="font-semibold">{purchase.buyer}</strong> {verb} {itemName}
+          </p>
+          <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
             {formatTimeAgo(purchase.at)}
-          </span>
-        </span>
+          </p>
+        </div>
       </div>
     </aside>
   );

@@ -20,7 +20,7 @@ function CartNotice() {
   return (
     <aside
       role={notice.tone === "error" ? "alert" : "status"}
-      className="purchase-toast purchase-toast--in pointer-events-none fixed bottom-4 right-4 z-[60] w-[min(calc(100%-1.5rem),28rem)]"
+      className="purchase-toast purchase-toast--in pointer-events-none fixed bottom-24 right-4 z-[60] w-[min(calc(100%-2rem),22rem)]"
     >
       <div
         className={cn(

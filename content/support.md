@@ -22,4 +22,4 @@ If a package did not deliver:
 
 ## Refunds
 
-No refunds. Digital packages are sold through Tebex, and we follow Tebex's refund policy. All purchases are final. Chargebacks or payment disputes result in a permanent ban from all of our services.
+No refunds. Digital packages are sold through Tebex, and we follow Tebex's refund policy. All purchases are final. If you want a refund, contact Tebex support.

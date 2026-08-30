@@ -1,12 +1,22 @@
+export type PurchaseAction = "purchased" | "subscribed" | "resubscribed";
+
 export type RecentPurchase = {
   id: string;
   buyer: string;
   item: string;
   at: string;
   href?: string | null;
-  avatar?: string | null;
   packageId?: number | null;
+  quantity?: number;
+  action?: PurchaseAction;
+  rank?: number | null;
 };
+
+export function purchaseVerb(action?: PurchaseAction) {
+  if (action === "subscribed") return "subscribed to";
+  if (action === "resubscribed") return "resubscribed to";
+  return "purchased";
+}
 
 export const ANON_BUYER = "Someone";
 

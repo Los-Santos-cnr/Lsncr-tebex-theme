@@ -189,3 +189,22 @@ export async function getTopSupporters(): Promise<PublicSupporter[]> {
     return [];
   }
 }
+
+const RANK_CACHE_MS = 5 * 60 * 1000;
+let rankCache: { at: number; ranks: Map<number, number> } | null = null;
+
+export async function getSupporterRanks(): Promise<Map<number, number>> {
+  if (rankCache && Date.now() - rankCache.at < RANK_CACHE_MS) return rankCache.ranks;
+
+  const ranks = new Map<number, number>();
+  try {
+    for (const supporter of await getTopSupporters()) {
+      const id = parseFiveMId(supporter.id);
+      if (id != null) ranks.set(id, supporter.rank);
+    }
+    rankCache = { at: Date.now(), ranks };
+  } catch (error) {
+    console.error("supporter ranks:", error);
+  }
+  return ranks;
+}
