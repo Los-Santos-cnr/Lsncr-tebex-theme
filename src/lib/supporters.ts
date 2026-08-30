@@ -8,7 +8,7 @@ import {
   listPaymentsHistory,
   type TebexPayment,
 } from "@/lib/tebex-admin";
-import { lookupPlayerNames, parseFiveMId } from "@/lib/player-lookup";
+import { lookupPlayerNames, fivemIdFromTebexPlayer, parseFiveMId } from "@/lib/player-lookup";
 import { getAllPackages, getSidebarRecentPayments } from "@/lib/tebex";
 
 export const TOP_SUPPORTERS_LIMIT = 100;
@@ -73,13 +73,13 @@ function fromPluginPayments(payments: TebexPayment[]) {
 
   for (const payment of payments) {
     if (!isCompleteStatus(payment.status)) continue;
-    const id = supporterDisplayId(payment.player?.id, payment.player?.uuid);
-    if (!id) continue;
-    const key = playerKey(payment.player?.id, payment.player?.uuid);
+    const fivemId = fivemIdFromTebexPlayer(payment.player);
+    if (fivemId == null) continue;
+    const key = playerKey(fivemId, payment.player?.uuid);
     if (!key) continue;
     const currency = payment.currency?.iso_4217 ?? "USD";
     const amount = convertAmount(Number(payment.amount), currency, "USD", FALLBACK_USD_RATES);
-    addSpend(map, key, id, amount);
+    addSpend(map, key, `#${fivemId}`, amount);
   }
 
   return map;

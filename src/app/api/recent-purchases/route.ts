@@ -5,7 +5,7 @@ import { db, ensureOrdersTable, isDatabaseConfigured } from "@/lib/db";
 import { isAdminApiConfigured, listPayments } from "@/lib/tebex-admin";
 import { getAllPackages, getSidebarRecentPayments, packageHref } from "@/lib/tebex";
 import type { TebexPackage } from "@/lib/tebex-types";
-import { lookupPlayerNames, parseFiveMId } from "@/lib/player-lookup";
+import { lookupPlayerNames, fivemIdFromTebexPlayer, parseFiveMId } from "@/lib/player-lookup";
 import {
   ANON_BUYER,
   normalizePackageName,
@@ -96,7 +96,7 @@ async function fromPluginApi(): Promise<PurchaseDraft[]> {
     .flatMap((payment) =>
       fromPackages(
         `tbx-${payment.id}`,
-        payment.player?.id,
+        fivemIdFromTebexPlayer(payment.player),
         payment.packages,
         payment.date
       )

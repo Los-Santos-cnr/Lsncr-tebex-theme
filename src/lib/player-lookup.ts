@@ -21,6 +21,14 @@ export function parseFiveMId(value?: string | number | null) {
   return Number.isSafeInteger(id) && id > 0 ? id : null;
 }
 
+/** Cfx / Tebex username id. Plugin `id` is internal; `uuid` is the real FiveM id. */
+export function fivemIdFromTebexPlayer(player?: {
+  id?: string | number | null;
+  uuid?: string | null;
+} | null) {
+  return parseFiveMId(player?.uuid) ?? parseFiveMId(player?.id);
+}
+
 export function sanitizePlayerUsername(raw?: string | null) {
   if (!raw) return null;
   let name = raw.trim();
