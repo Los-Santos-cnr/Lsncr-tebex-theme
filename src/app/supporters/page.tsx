@@ -22,7 +22,7 @@ export default async function SupportersPage() {
           description="Thank you. Every membership, token, and gift helps keep Los Santos Cops and Robbers running. These are the players who have given the most. Names only, ranked with respect."
         />
         <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          Up to {TOP_SUPPORTERS_LIMIT} supporters, sorted by who has given the most. Amounts stay private.
+          Up to {TOP_SUPPORTERS_LIMIT} supporters with a character on the server, sorted by who has given the most. Amounts stay private.
         </p>
         <SupportersBoard supporters={supporters} />
       </PageContainer>

@@ -8,10 +8,11 @@ import {
   listPaymentsHistory,
   type TebexPayment,
 } from "@/lib/tebex-admin";
-import { lookupPlayerNames, fivemIdFromTebexPlayer, parseFiveMId } from "@/lib/player-lookup";
+import { lookupPlayerNames, fivemIdFromTebexPlayer, isPlayerLookupConfigured, parseFiveMId } from "@/lib/player-lookup";
 import { getAllPackages, getSidebarRecentPayments } from "@/lib/tebex";
 
-export const TOP_SUPPORTERS_LIMIT = 100;
+export const TOP_SUPPORTERS_LIMIT = 500;
+const TOP_SUPPORTERS_CANDIDATES = 800;
 
 export type PublicSupporter = {
   rank: number;
@@ -132,9 +133,9 @@ async function fromRecentSidebar() {
 function toPublicList(map: Map<string, RankedSpender>): PublicSupporter[] {
   return [...map.values()]
     .sort((a, b) => b.total - a.total || a.id.localeCompare(b.id))
-    .slice(0, TOP_SUPPORTERS_LIMIT)
-    .map((supporter, index) => ({
-      rank: index + 1,
+    .slice(0, TOP_SUPPORTERS_CANDIDATES)
+    .map((supporter) => ({
+      rank: 0,
       id: supporter.id,
       name: null,
     }));
@@ -142,17 +143,31 @@ function toPublicList(map: Map<string, RankedSpender>): PublicSupporter[] {
 
 async function withPlayerNames(supporters: PublicSupporter[]): Promise<PublicSupporter[]> {
   if (!supporters.length) return supporters;
+  if (!isPlayerLookupConfigured()) {
+    return supporters.slice(0, TOP_SUPPORTERS_LIMIT).map((supporter, index) => ({
+      ...supporter,
+      rank: index + 1,
+    }));
+  }
+
   const names = await lookupPlayerNames(supporters.map((supporter) => supporter.id));
-  return supporters.map((supporter) => ({
-    ...supporter,
-    name: names.get(parseFiveMId(supporter.id) ?? -1) ?? null,
-  }));
+  return supporters
+    .map((supporter) => ({
+      ...supporter,
+      name: names.get(parseFiveMId(supporter.id) ?? -1) ?? null,
+    }))
+    .filter((supporter) => Boolean(supporter.name))
+    .slice(0, TOP_SUPPORTERS_LIMIT)
+    .map((supporter, index) => ({
+      ...supporter,
+      rank: index + 1,
+    }));
 }
 
 export async function getTopSupporters(): Promise<PublicSupporter[]> {
   if (isAdminApiConfigured()) {
     try {
-      const ranked = toPublicList(fromPluginPayments(await listPaymentsHistory()));
+      const ranked = toPublicList(fromPluginPayments(await listPaymentsHistory(80)));
       if (ranked.length) return withPlayerNames(ranked);
     } catch (error) {
       console.error("top supporters:", error);

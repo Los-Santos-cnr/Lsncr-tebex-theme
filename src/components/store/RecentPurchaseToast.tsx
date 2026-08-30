@@ -6,9 +6,9 @@ import { useEffect, useState } from "react";
 import { cn } from "@/components/ui/cn";
 import { formatTimeAgo, type RecentPurchase } from "@/lib/recent-purchases";
 
-const SHOW_MS = 4800;
-const HIDE_MS = 700;
-const GAP_MS = 1600;
+const SHOW_MS = 7200;
+const HIDE_MS = 400;
+const GAP_MS = 350;
 
 export function RecentPurchaseToast() {
   const [items, setItems] = useState<RecentPurchase[]>([]);

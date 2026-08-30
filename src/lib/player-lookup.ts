@@ -53,37 +53,39 @@ export async function lookupPlayerNames(
     if (id == null || seen.has(id)) continue;
     seen.add(id);
     ids.push(id);
-    if (ids.length >= LOOKUP_LIMIT) break;
   }
   if (!ids.length) return names;
 
   try {
-    const res = await fetch(`${getPlayerLookupUrl()}/api/players/lookup`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        "X-API-Key": apiKey,
-      },
-      body: JSON.stringify({ ids }),
-      cache: "no-store",
-      signal: AbortSignal.timeout(8000),
-    });
+    for (let offset = 0; offset < ids.length; offset += LOOKUP_LIMIT) {
+      const chunk = ids.slice(offset, offset + LOOKUP_LIMIT);
+      const res = await fetch(`${getPlayerLookupUrl()}/api/players/lookup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "X-API-Key": apiKey,
+        },
+        body: JSON.stringify({ ids: chunk }),
+        cache: "no-store",
+        signal: AbortSignal.timeout(8000),
+      });
 
-    if (!res.ok) {
-      console.error("player lookup failed:", res.status, await res.text().catch(() => ""));
-      return names;
-    }
+      if (!res.ok) {
+        console.error("player lookup failed:", res.status, await res.text().catch(() => ""));
+        continue;
+      }
 
-    const data = (await res.json()) as {
-      players?: Array<{ id?: number | string; username?: string | null }>;
-    };
+      const data = (await res.json()) as {
+        players?: Array<{ id?: number | string; username?: string | null }>;
+      };
 
-    for (const player of data.players ?? []) {
-      const id = parseFiveMId(player.id);
-      const username = sanitizePlayerUsername(player.username);
-      if (id == null || !username) continue;
-      names.set(id, username);
+      for (const player of data.players ?? []) {
+        const id = parseFiveMId(player.id);
+        const username = sanitizePlayerUsername(player.username);
+        if (id == null || !username) continue;
+        names.set(id, username);
+      }
     }
   } catch (error) {
     console.error("player lookup:", error);
