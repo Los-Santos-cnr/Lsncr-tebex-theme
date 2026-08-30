@@ -165,7 +165,7 @@ function historyRow(
     fivemId,
     packageIds: (packages ?? [])
       .map((pkg) => pkg.id)
-      .filter((id): id is number => Number.isFinite(id) && id > 0),
+      .filter((id): id is number => typeof id === "number" && Number.isFinite(id) && id > 0),
     packageNames: (packages ?? [])
       .map((pkg) => normalizePackageName(pkg.name ?? ""))
       .filter(Boolean),
