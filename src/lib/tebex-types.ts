@@ -26,6 +26,8 @@ export interface TebexPackage {
   base_price: number;
   sales_tax: number;
   total_price: number;
+  /** Pre-sale total when a live Plugin sale was applied on top of Headless. */
+  original_price?: number | null;
   currency: string;
   discount: number;
   disable_quantity: boolean;

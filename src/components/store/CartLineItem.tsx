@@ -27,7 +27,7 @@ export function CartLineItem({ item }: { item: LocalCartItem }) {
             {item.name}
           </Link>
           <p className="text-xs text-muted-foreground">
-            <Price amount={item.price} from={item.currency} /> each
+            <Price amount={item.price} original={item.originalPrice} from={item.currency} /> each
           </p>
         </div>
         <div className="flex items-center gap-2">

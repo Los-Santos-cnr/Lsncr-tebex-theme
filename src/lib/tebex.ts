@@ -7,6 +7,7 @@ import type {
   TebexPackage,
   TebexPackageOption,
 } from "./tebex-types";
+import { applySaleToPackage, applySalesToCategories } from "./package-sales";
 import { isGiftcardName } from "./package-kind";
 import { getSiteUrl } from "./site";
 
@@ -63,6 +64,15 @@ async function tebexFetch<T>(path: string, init?: TebexFetchOptions): Promise<T>
   }
 
   return res.json() as Promise<T>;
+}
+
+async function getLiveSales() {
+  try {
+    const { listActiveSales } = await import("./tebex-admin");
+    return await listActiveSales();
+  } catch {
+    return [];
+  }
 }
 
 export function isTebexConfigured() {
@@ -126,9 +136,12 @@ export async function getCategories(
 
   const query = includePackages ? "?includePackages=1" : "";
   const res = await tebexFetch<TebexApiResponse<TebexCategory[]>>(
-    `/accounts/${token}/categories${query}`
+    `/accounts/${token}/categories${query}`,
+    { revalidate: includePackages ? 60 : 300 }
   );
-  return res.data ?? [];
+  const categories = res.data ?? [];
+  if (!includePackages) return categories;
+  return applySalesToCategories(categories, await getLiveSales());
 }
 
 export async function getCategoryById(
@@ -140,9 +153,12 @@ export async function getCategoryById(
 
   const query = includePackages ? "?includePackages=1" : "";
   const res = await tebexFetch<TebexApiResponse<TebexCategory[]>>(
-    `/accounts/${token}/categories/${categoryId}${query}`
+    `/accounts/${token}/categories/${categoryId}${query}`,
+    { revalidate: includePackages ? 60 : 300 }
   );
-  return res.data?.[0] ?? null;
+  const category = res.data?.[0] ?? null;
+  if (!category || !includePackages) return category;
+  return applySalesToCategories([category], await getLiveSales())[0] ?? category;
 }
 
 export async function getCategoryBySlug(
@@ -169,10 +185,11 @@ export async function getPackageById(
   const payload = res.data;
   const list = Array.isArray(payload) ? payload : payload ? [payload] : [];
   const wanted = Number(packageId);
-  return (
+  const pkg =
     list.find((item) => Number(item.id) === wanted) ??
-    (list.length === 1 ? list[0] : null)
-  );
+    (list.length === 1 ? list[0] : null);
+  if (!pkg) return null;
+  return applySaleToPackage(pkg, await getLiveSales());
 }
 
 export function isDiscordPackageOption(option: TebexPackageOption) {

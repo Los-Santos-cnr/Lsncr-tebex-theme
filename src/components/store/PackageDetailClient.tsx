@@ -22,7 +22,8 @@ export function PackageDetailClient({
   const router = useRouter();
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(false);
-  const onSale = (pkg.discount ?? 0) > 0 || pkg.sale?.active;
+  const onSale = (pkg.discount ?? 0) > 0 || Boolean(pkg.sale?.active);
+  const salePercent = pkg.sale?.discount || pkg.discount || 0;
 
   function handleAdd(goToCart = false) {
     setLoading(true);
@@ -52,12 +53,20 @@ export function PackageDetailClient({
         </div>
         <div className="space-y-4">
           <div className="flex flex-wrap gap-2">
-            {onSale ? <Badge tone="warning">Sale</Badge> : null}
+            {onSale ? (
+              <Badge tone="warning" className="font-display uppercase tracking-[0.14em]">
+                {salePercent > 0 && salePercent <= 100 ? `Sale −${salePercent}%` : "Sale"}
+              </Badge>
+            ) : null}
             <Badge tone="neutral">{pkg.category.name}</Badge>
           </div>
           <h1 className="lscnr-heading text-3xl text-foreground">{pkg.name}</h1>
           <p className="lscnr-price text-3xl">
-            <Price amount={pkg.total_price} from={pkg.currency} />
+            <Price
+              amount={pkg.total_price}
+              original={pkg.original_price}
+              from={pkg.currency}
+            />
           </p>
           {!pkg.disable_quantity ? (
             <div className="flex items-center gap-2">
@@ -112,7 +121,11 @@ export function PackageDetailClient({
               >
                 <p className="text-sm font-semibold">{item.name}</p>
                 <p className="lscnr-price mt-1 text-sm">
-                  <Price amount={item.total_price} from={item.currency} />
+                  <Price
+                    amount={item.total_price}
+                    original={item.original_price}
+                    from={item.currency}
+                  />
                 </p>
               </Link>
             ))}

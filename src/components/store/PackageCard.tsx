@@ -23,7 +23,8 @@ export function PackageCard({
 }) {
   const [adding, setAdding] = useState(false);
   const inCart = useCartStore((s) => s.localItems.some((item) => item.packageId === pkg.id));
-  const onSale = (pkg.discount ?? 0) > 0 || pkg.sale?.active;
+  const onSale = (pkg.discount ?? 0) > 0 || Boolean(pkg.sale?.active);
+  const salePercent = pkg.sale?.discount || pkg.discount || 0;
   const href = packageHref(pkg);
 
   function handleAdd(event: MouseEvent) {
@@ -48,8 +49,8 @@ export function PackageCard({
           ) : null}
           {onSale ? (
             <div className="absolute left-3 top-3 z-10">
-              <Badge tone="warning" size="xs">
-                Sale
+              <Badge tone="warning" size="xs" className="font-display uppercase tracking-[0.14em]">
+                {salePercent > 0 && salePercent <= 100 ? `Sale −${salePercent}%` : "Sale"}
               </Badge>
             </div>
           ) : null}
@@ -60,6 +61,7 @@ export function PackageCard({
               <Price
                 className="lscnr-price mt-1 block text-sm"
                 amount={pkg.total_price}
+                original={pkg.original_price}
                 from={pkg.currency}
               />
             </div>

@@ -17,6 +17,7 @@ export type LocalCartItem = {
   name: string;
   image: string | null;
   price: number;
+  originalPrice?: number | null;
   currency: string;
   needsDiscord?: boolean;
 };
@@ -217,7 +218,12 @@ export const useCartStore = create<CartState>()(
           return {
             localItems: state.localItems.map((row) =>
               row.packageId === item.packageId
-                ? { ...row, quantity: row.quantity + (item.quantity || 1) }
+                ? {
+                    ...row,
+                    quantity: row.quantity + (item.quantity || 1),
+                    price: item.price,
+                    originalPrice: item.originalPrice,
+                  }
                 : row
             ),
           };
@@ -313,7 +319,10 @@ export async function fetchBasket(ident: string) {
 }
 
 export function addToCart(
-  pkg: Pick<TebexPackage, "id" | "name" | "image" | "type" | "total_price" | "currency" | "options">,
+  pkg: Pick<
+    TebexPackage,
+    "id" | "name" | "image" | "type" | "total_price" | "original_price" | "currency" | "options"
+  >,
   quantity = 1
 ) {
   useCartStore.getState().addLocalItem({
@@ -323,6 +332,7 @@ export function addToCart(
     name: pkg.name,
     image: pkg.image,
     price: pkg.total_price,
+    originalPrice: pkg.original_price,
     currency: pkg.currency,
     needsDiscord: packageNeedsDiscord(pkg),
   });
