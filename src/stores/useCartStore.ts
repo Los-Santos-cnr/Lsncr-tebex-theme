@@ -20,7 +20,19 @@ export type LocalCartItem = {
   originalPrice?: number | null;
   currency: string;
   needsDiscord?: boolean;
+  disableQuantity?: boolean;
 };
+
+const MAX_CART_QTY = 99;
+
+export function cartItemQuantityLocked(item: Pick<LocalCartItem, "disableQuantity" | "type">) {
+  return Boolean(item.disableQuantity) || item.type === "subscription";
+}
+
+function clampCartQuantity(value: number) {
+  if (!Number.isFinite(value)) return 1;
+  return Math.max(1, Math.min(MAX_CART_QTY, Math.floor(value)));
+}
 
 type Notice = { tone: "ok" | "error"; message: string } | null;
 
@@ -52,6 +64,7 @@ interface CartState {
   setLoading: (loading: boolean) => void;
   setHasHydrated: (value: boolean) => void;
   addLocalItem: (item: LocalCartItem) => void;
+  setLocalItemQuantity: (packageId: number, quantity: number) => void;
   removeLocalItem: (packageId: number) => void;
   signOut: () => void;
   clearPaidCart: () => void;
@@ -212,22 +225,39 @@ export const useCartStore = create<CartState>()(
       addLocalItem: (item) =>
         set((state) => {
           const existing = state.localItems.find((row) => row.packageId === item.packageId);
+          const locked = cartItemQuantityLocked(item) || (existing ? cartItemQuantityLocked(existing) : false);
           if (!existing) {
-            return { localItems: [...state.localItems, { ...item, quantity: item.quantity || 1 }] };
+            return {
+              localItems: [
+                ...state.localItems,
+                { ...item, quantity: locked ? 1 : clampCartQuantity(item.quantity || 1) },
+              ],
+            };
           }
           return {
             localItems: state.localItems.map((row) =>
               row.packageId === item.packageId
                 ? {
                     ...row,
-                    quantity: row.quantity + (item.quantity || 1),
+                    quantity: locked
+                      ? 1
+                      : clampCartQuantity(row.quantity + (item.quantity || 1)),
                     price: item.price,
                     originalPrice: item.originalPrice,
+                    disableQuantity: item.disableQuantity ?? row.disableQuantity,
                   }
                 : row
             ),
           };
         }),
+      setLocalItemQuantity: (packageId, quantity) =>
+        set((state) => ({
+          localItems: state.localItems.map((row) => {
+            if (row.packageId !== packageId) return row;
+            if (cartItemQuantityLocked(row)) return { ...row, quantity: 1 };
+            return { ...row, quantity: clampCartQuantity(quantity) };
+          }),
+        })),
       removeLocalItem: (packageId) =>
         set((state) => ({
           localItems: state.localItems.filter((row) => row.packageId !== packageId),
@@ -321,7 +351,15 @@ export async function fetchBasket(ident: string) {
 export function addToCart(
   pkg: Pick<
     TebexPackage,
-    "id" | "name" | "image" | "type" | "total_price" | "original_price" | "currency" | "options"
+    | "id"
+    | "name"
+    | "image"
+    | "type"
+    | "total_price"
+    | "original_price"
+    | "currency"
+    | "options"
+    | "disable_quantity"
   >,
   quantity = 1
 ) {
@@ -335,8 +373,13 @@ export function addToCart(
     originalPrice: pkg.original_price,
     currency: pkg.currency,
     needsDiscord: packageNeedsDiscord(pkg),
+    disableQuantity: Boolean(pkg.disable_quantity),
   });
   useCartStore.getState().setNotice({ tone: "ok", message: `${pkg.name} added to cart.` });
+}
+
+export function setCartQuantity(packageId: number, quantity: number) {
+  useCartStore.getState().setLocalItemQuantity(packageId, quantity);
 }
 
 export function removeFromCart(packageId: number) {
