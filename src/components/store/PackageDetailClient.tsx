@@ -5,9 +5,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { TrustStrip } from "@/components/store/TrustStrip";
+import { BulkDealPicker } from "@/components/store/BulkDealPicker";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Price } from "@/components/store/Price";
+import {
+  bulkFullTotal,
+  bulkLineTotal,
+  bulkPercentForQuantity,
+  packageOffersBulkDeals,
+} from "@/lib/bulk-deals";
 import { packageHref } from "@/lib/tebex";
 import type { TebexPackage } from "@/lib/tebex-types";
 import { addToCart } from "@/stores/useCartStore";
@@ -24,6 +31,17 @@ export function PackageDetailClient({
   const [loading, setLoading] = useState(false);
   const onSale = (pkg.discount ?? 0) > 0 || Boolean(pkg.sale?.active);
   const salePercent = pkg.sale?.discount || pkg.discount || 0;
+  const offersBulk = packageOffersBulkDeals(pkg);
+  const bulkPercent = offersBulk ? bulkPercentForQuantity(quantity) : 0;
+  const displayTotal = bulkLineTotal(pkg.total_price, quantity, bulkPercent);
+  const compareUnit =
+    pkg.original_price != null && pkg.original_price > pkg.total_price
+      ? pkg.original_price
+      : pkg.total_price;
+  const displayOriginal =
+    bulkFullTotal(compareUnit, quantity) > displayTotal
+      ? bulkFullTotal(compareUnit, quantity)
+      : null;
 
   function handleAdd(goToCart = false) {
     setLoading(true);
@@ -63,11 +81,26 @@ export function PackageDetailClient({
           <h1 className="lscnr-heading text-3xl text-foreground">{pkg.name}</h1>
           <p className="lscnr-price text-3xl">
             <Price
-              amount={pkg.total_price}
-              original={pkg.original_price}
+              amount={displayTotal}
+              original={displayOriginal}
               from={pkg.currency}
             />
           </p>
+          {quantity > 1 ? (
+            <p className="text-xs text-muted-foreground">
+              {bulkPercent > 0 ? `−${bulkPercent}% bulk · ` : null}
+              <Price amount={pkg.total_price} original={pkg.original_price} from={pkg.currency} /> each
+            </p>
+          ) : null}
+          {offersBulk ? (
+            <BulkDealPicker
+              quantity={quantity}
+              unitPrice={pkg.total_price}
+              originalUnit={pkg.original_price}
+              currency={pkg.currency}
+              onSelect={setQuantity}
+            />
+          ) : null}
           {!pkg.disable_quantity ? (
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">Qty</span>

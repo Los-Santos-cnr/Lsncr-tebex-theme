@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/ui/Section";
 import { Button } from "@/components/ui/Button";
 import { Price } from "@/components/store/Price";
 import { useCurrency } from "@/components/providers/CurrencyProvider";
+import { bulkLineTotal, bulkPercentForQuantity, packageOffersBulkDeals } from "@/lib/bulk-deals";
 import { useCartStore } from "@/stores/useCartStore";
 
 export function CartPageClient() {
@@ -35,7 +36,10 @@ export function CartPageClient() {
     );
   }
 
-  const subtotal = localItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const subtotal = localItems.reduce((sum, item) => {
+    const percent = packageOffersBulkDeals(item) ? bulkPercentForQuantity(item.quantity) : 0;
+    return sum + bulkLineTotal(item.price, item.quantity, percent);
+  }, 0);
   const storeCurrency = localItems[0]?.currency ?? "EUR";
   const chargedInStoreCurrency = storeCurrency.toUpperCase() !== currency;
 

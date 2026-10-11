@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Price } from "@/components/store/Price";
+import { bulkFullTotal, bulkLineTotal, bulkPercentForQuantity, packageOffersBulkDeals } from "@/lib/bulk-deals";
 import { packageHref } from "@/lib/tebex";
 import {
   cartItemQuantityLocked,
@@ -90,10 +91,13 @@ function QuantityStepper({
 export function CartLineItem({ item }: { item: LocalCartItem }) {
   const isLoading = useCartStore((s) => s.isLoading);
   const locked = cartItemQuantityLocked(item);
-  const lineTotal = item.price * item.quantity;
+  const bulkPercent = packageOffersBulkDeals(item) ? bulkPercentForQuantity(item.quantity) : 0;
+  const lineTotal = bulkLineTotal(item.price, item.quantity, bulkPercent);
+  const compareUnit =
+    item.originalPrice != null && item.originalPrice > item.price ? item.originalPrice : item.price;
   const lineOriginal =
-    item.originalPrice != null && item.originalPrice > item.price
-      ? item.originalPrice * item.quantity
+    bulkFullTotal(compareUnit, item.quantity) > lineTotal
+      ? bulkFullTotal(compareUnit, item.quantity)
       : null;
 
   return (
@@ -114,7 +118,19 @@ export function CartLineItem({ item }: { item: LocalCartItem }) {
           <p className="text-xs text-muted-foreground">
             <Price amount={item.price} original={item.originalPrice} from={item.currency} />
             {item.quantity > 1 ? " each" : null}
+            {bulkPercent > 0 ? ` · −${bulkPercent}% bulk` : null}
           </p>
+          {packageOffersBulkDeals(item) && !locked && item.quantity < 6 ? (
+            <button
+              type="button"
+              className="mt-1 text-left text-[11px] text-gold hover:underline"
+              onClick={() =>
+                setCartQuantity(item.packageId, item.quantity < 3 ? 3 : 6)
+              }
+            >
+              {item.quantity < 3 ? "Buy 3, get 10% off" : "Buy 6, get 25% off"}
+            </button>
+          ) : null}
         </div>
         <div className="flex items-center justify-between gap-3 sm:justify-end">
           {locked ? (
