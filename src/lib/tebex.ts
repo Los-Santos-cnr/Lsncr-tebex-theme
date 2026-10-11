@@ -542,6 +542,15 @@ export function getTopCategories(categories: TebexCategory[]) {
     .sort((a, b) => a.order - b.order);
 }
 
+export function getChildCategories(
+  category: TebexCategory,
+  allCategories: TebexCategory[]
+) {
+  return allCategories
+    .filter((c) => c.parent?.id === category.id)
+    .sort((a, b) => a.order - b.order);
+}
+
 export function packagesForTopCategory(
   category: TebexCategory,
   allCategories: TebexCategory[]
