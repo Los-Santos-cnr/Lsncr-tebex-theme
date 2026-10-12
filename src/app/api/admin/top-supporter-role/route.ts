@@ -1,9 +1,21 @@
 import { NextResponse } from "next/server";
 import { adminError, guardAdmin } from "../_guard";
-import { syncTopSupporterRoles } from "@/lib/top-supporter-role";
+import { getRecentTopSpenders, syncTopSupporterRoles } from "@/lib/top-supporter-role";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+
+export async function GET() {
+  const blocked = await guardAdmin();
+  if (blocked) return blocked;
+
+  try {
+    const result = await getRecentTopSpenders(10);
+    return NextResponse.json(result);
+  } catch (error) {
+    return adminError(error);
+  }
+}
 
 export async function POST(request: Request) {
   const blocked = await guardAdmin();

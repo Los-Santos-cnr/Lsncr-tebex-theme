@@ -11,6 +11,7 @@ import {
 import { db, ensureOrdersTable, ensureTopSupporterTables, isDatabaseConfigured } from "./db";
 import {
   fivemIdFromTebexPlayer,
+  lookupPlayerNames,
   lookupPlayerProfiles,
   parseFiveMId,
 } from "./player-lookup";
@@ -25,6 +26,15 @@ import {
 export const TOP_SUPPORTER_MIN_USD = 500;
 export const TOP_SUPPORTER_WINDOW_DAYS = 90;
 
+export type RecentTopSpender = {
+  rank: number;
+  fivemId: number;
+  name: string | null;
+  usd: number;
+  remainingUsd: number;
+  qualified: boolean;
+};
+
 export type TopSupporterSyncResult = {
   apply: boolean;
   roleId: string;
@@ -37,6 +47,7 @@ export type TopSupporterSyncResult = {
   revoked: number;
   skippedNoDiscord: number;
   skippedNotInGuild: number;
+  leaders: RecentTopSpender[];
   errors: string[];
 };
 
@@ -44,6 +55,7 @@ type Spender = {
   fivemId: number;
   usd: number;
   discordId: string | null;
+  name: string | null;
 };
 
 function windowStart(now = Date.now()) {
@@ -66,15 +78,26 @@ function paymentTimeMs(value: string | number | null | undefined) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function addSpend(map: Map<number, Spender>, fivemId: number, usd: number, discordId?: string | null) {
+function addSpend(
+  map: Map<number, Spender>,
+  fivemId: number,
+  usd: number,
+  extras?: { discordId?: string | null; name?: string | null }
+) {
   if (!Number.isFinite(usd) || usd <= 0) return;
   const current = map.get(fivemId);
   if (current) {
     current.usd += usd;
-    if (!current.discordId && discordId) current.discordId = discordId;
+    if (!current.discordId && extras?.discordId) current.discordId = extras.discordId;
+    if (!current.name && extras?.name) current.name = extras.name;
     return;
   }
-  map.set(fivemId, { fivemId, usd, discordId: discordId ?? null });
+  map.set(fivemId, {
+    fivemId,
+    usd,
+    discordId: extras?.discordId ?? null,
+    name: extras?.name ?? null,
+  });
 }
 
 export async function persistPlayerDiscordLink(fivemId: number, discordId: string) {
@@ -145,7 +168,10 @@ function spendFromPluginPayments(payments: TebexPayment[], cutoffMs: number) {
     if (paymentTimeMs(payment.date) < cutoffMs) continue;
     const fivemId = fivemIdFromTebexPlayer(payment.player);
     if (fivemId == null) continue;
-    addSpend(map, fivemId, toUsd(Number(payment.amount), payment.currency?.iso_4217), extractDiscordId(payment));
+    addSpend(map, fivemId, toUsd(Number(payment.amount), payment.currency?.iso_4217), {
+      discordId: extractDiscordId(payment),
+      name: payment.player?.name?.trim() || null,
+    });
   }
   return map;
 }
@@ -171,15 +197,87 @@ async function spendFromOrders(cutoffMs: number) {
     if (created && created < cutoffMs) continue;
     const fivemId = parseFiveMId(row.usernameId);
     if (fivemId == null) continue;
-    addSpend(map, fivemId, toUsd(Number(row.total), row.currency), extractDiscordId(row.rawPayload));
+    addSpend(map, fivemId, toUsd(Number(row.total), row.currency), {
+      discordId: extractDiscordId(row.rawPayload),
+      name: row.username?.trim() || null,
+    });
   }
   return map;
 }
 
 function mergeSpend(target: Map<number, Spender>, extra: Map<number, Spender>) {
   for (const spender of extra.values()) {
-    addSpend(target, spender.fivemId, spender.usd, spender.discordId);
+    addSpend(target, spender.fivemId, spender.usd, {
+      discordId: spender.discordId,
+      name: spender.name,
+    });
   }
+}
+
+function roundUsd(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
+async function toLeaders(spenders: Spender[], limit = 10): Promise<RecentTopSpender[]> {
+  const top = [...spenders].sort((a, b) => b.usd - a.usd || a.fivemId - b.fivemId).slice(0, limit);
+  const names = await lookupPlayerNames(top.map((spender) => spender.fivemId));
+  return top.map((spender, index) => ({
+    rank: index + 1,
+    fivemId: spender.fivemId,
+    name: names.get(spender.fivemId) ?? spender.name,
+    usd: roundUsd(spender.usd),
+    remainingUsd: roundUsd(Math.max(0, TOP_SUPPORTER_MIN_USD - spender.usd)),
+    qualified: spender.usd >= TOP_SUPPORTER_MIN_USD,
+  }));
+}
+
+const SPEND_CACHE_MS = 2 * 60 * 1000;
+let spendCache: { at: number; payments: number; spenders: Spender[] } | null = null;
+
+async function collectWindowSpend(fresh = false) {
+  if (!fresh && spendCache && Date.now() - spendCache.at < SPEND_CACHE_MS) {
+    return spendCache;
+  }
+
+  const cutoff = windowStart();
+  const cutoffMs = cutoff.getTime();
+  const payments = await listPaymentsSince(cutoff, 160);
+  const spend = spendFromPluginPayments(payments, cutoffMs);
+  const fromOrders = await spendFromOrders(cutoffMs).catch(() => new Map<number, Spender>());
+  if (spend.size) {
+    for (const extra of fromOrders.values()) {
+      const current = spend.get(extra.fivemId);
+      if (!current) continue;
+      if (!current.discordId && extra.discordId) current.discordId = extra.discordId;
+      if (!current.name && extra.name) current.name = extra.name;
+    }
+  } else {
+    mergeSpend(spend, fromOrders);
+  }
+
+  spendCache = { at: Date.now(), payments: payments.length, spenders: [...spend.values()] };
+  return spendCache;
+}
+
+export async function getRecentTopSpenders(limit = 10) {
+  if (!isAdminApiConfigured()) {
+    return {
+      windowDays: TOP_SUPPORTER_WINDOW_DAYS,
+      thresholdUsd: TOP_SUPPORTER_MIN_USD,
+      payments: 0,
+      leaders: [] as RecentTopSpender[],
+      errors: ["TEBEX_SECRET_KEY is not configured."],
+    };
+  }
+
+  const collected = await collectWindowSpend();
+  return {
+    windowDays: TOP_SUPPORTER_WINDOW_DAYS,
+    thresholdUsd: TOP_SUPPORTER_MIN_USD,
+    payments: collected.payments,
+    leaders: await toLeaders(collected.spenders, limit),
+    errors: [] as string[],
+  };
 }
 
 async function resolveDiscordIds(spenders: Spender[]) {
@@ -222,6 +320,7 @@ export async function syncTopSupporterRoles(options?: { apply?: boolean }): Prom
     revoked: 0,
     skippedNoDiscord: 0,
     skippedNotInGuild: 0,
+    leaders: [],
     errors: [],
   };
 
@@ -234,23 +333,10 @@ export async function syncTopSupporterRoles(options?: { apply?: boolean }): Prom
     return result;
   }
 
-  const cutoff = windowStart();
-  const cutoffMs = cutoff.getTime();
-  const payments = await listPaymentsSince(cutoff, 160);
-  result.payments = payments.length;
-
-  const spend = spendFromPluginPayments(payments, cutoffMs);
-  const fromOrders = await spendFromOrders(cutoffMs).catch(() => new Map<number, Spender>());
-  if (spend.size) {
-    for (const extra of fromOrders.values()) {
-      const current = spend.get(extra.fivemId);
-      if (current && !current.discordId && extra.discordId) current.discordId = extra.discordId;
-    }
-  } else {
-    mergeSpend(spend, fromOrders);
-  }
-
-  const spenders = [...spend.values()];
+  const collected = await collectWindowSpend(apply);
+  result.payments = collected.payments;
+  const spenders = collected.spenders.map((spender) => ({ ...spender }));
+  result.leaders = await toLeaders(spenders);
   await resolveDiscordIds(spenders);
 
   const qualifyers = spenders.filter((spender) => spender.usd >= TOP_SUPPORTER_MIN_USD);
@@ -324,7 +410,7 @@ export async function syncTopSupporterForIdentities(input: {
 
   let resolvedDiscord = discordId;
   if (!resolvedDiscord) {
-    const spender: Spender = { fivemId, usd, discordId: null };
+    const spender: Spender = { fivemId, usd, discordId: null, name: null };
     await resolveDiscordIds([spender]);
     resolvedDiscord = spender.discordId;
   }
