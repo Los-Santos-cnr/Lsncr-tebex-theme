@@ -23,7 +23,7 @@ import {
 } from "./tebex-admin";
 
 export const TOP_SUPPORTER_MIN_USD = 500;
-export const TOP_SUPPORTER_WINDOW_DAYS = 180;
+export const TOP_SUPPORTER_WINDOW_DAYS = 90;
 
 export type TopSupporterSyncResult = {
   apply: boolean;

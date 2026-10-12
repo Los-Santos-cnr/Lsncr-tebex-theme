@@ -60,7 +60,7 @@ export function TopSupporterSync() {
       </div>
       <CardBody className="space-y-3 p-5">
         <p className="text-sm text-muted-foreground">
-          Players who spent at least $500 USD in the last 180 days get Discord role{" "}
+          Players who spent at least $500 USD in the last 90 days get Discord role{" "}
           <code className="text-gold">1272082144319115305</code>. Past Tebex payments count. The
           role is removed when they drop below that rolling total.
         </p>
