@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
+import { getDiscordBotToken, getDiscordGuildId } from "@/lib/discord-guild";
 
 export async function GET() {
-  const guildId = process.env.NEXT_PUBLIC_DISCORD_GUILD_ID?.trim();
-  const botToken = process.env.DISCORD_BOT_TOKEN?.trim();
+  const guildId = getDiscordGuildId();
+  const botToken = getDiscordBotToken();
 
   if (!guildId) {
     return NextResponse.json({ count: null });

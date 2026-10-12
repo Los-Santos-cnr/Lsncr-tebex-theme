@@ -3,7 +3,11 @@ import { parseDiscordSnowflake } from "./discord-ids";
 const API = "https://discord.com/api/v10";
 
 export function getDiscordGuildId() {
-  return process.env.NEXT_PUBLIC_DISCORD_GUILD_ID?.trim() ?? "";
+  return (
+    process.env.DISCORD_GUILD_ID?.trim() ||
+    process.env.NEXT_PUBLIC_DISCORD_GUILD_ID?.trim() ||
+    ""
+  );
 }
 
 export function getDiscordBotToken() {
