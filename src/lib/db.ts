@@ -27,3 +27,24 @@ export async function ensureOrdersTable() {
     )
   `;
 }
+
+export async function ensureTopSupporterTables() {
+  if (!isDatabaseConfigured()) return;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS player_discord_links (
+      fivem_id TEXT PRIMARY KEY,
+      discord_id TEXT NOT NULL,
+      updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS top_supporter_grants (
+      discord_id TEXT PRIMARY KEY,
+      fivem_id TEXT,
+      spend_usd NUMERIC(12, 2),
+      granted_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `;
+}

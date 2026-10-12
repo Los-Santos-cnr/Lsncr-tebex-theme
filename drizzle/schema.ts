@@ -16,3 +16,16 @@ export const orders = pgTable("orders", {
 
 export type Order = typeof orders.$inferSelect;
 export type NewOrder = typeof orders.$inferInsert;
+
+export const playerDiscordLinks = pgTable("player_discord_links", {
+  fivemId: text("fivem_id").primaryKey(),
+  discordId: text("discord_id").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const topSupporterGrants = pgTable("top_supporter_grants", {
+  discordId: text("discord_id").primaryKey(),
+  fivemId: text("fivem_id"),
+  spendUsd: numeric("spend_usd", { precision: 12, scale: 2 }),
+  grantedAt: timestamp("granted_at").defaultNow().notNull(),
+});

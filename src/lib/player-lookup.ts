@@ -1,5 +1,13 @@
+import { extractDiscordId } from "./discord-ids";
+
 const DEFAULT_LOOKUP_URL = "https://ucp.lscnr.net";
 const LOOKUP_LIMIT = 100;
+
+export type PlayerLookupProfile = {
+  id: number;
+  username: string | null;
+  discordId: string | null;
+};
 
 export function getPlayerLookupKey() {
   return process.env.STORE_PLAYER_LOOKUP_KEY?.trim() ?? "";
@@ -13,8 +21,8 @@ export function isPlayerLookupConfigured() {
   return Boolean(getPlayerLookupKey());
 }
 
-export function parseFiveMId(value?: string | number | null) {
-  if (value == null) return null;
+export function parseFiveMId(value?: string | number | null | unknown) {
+  if (value == null || typeof value === "object") return null;
   const raw = String(value).trim().replace(/^#/, "");
   if (!/^\d+$/.test(raw)) return null;
   const id = Number(raw);
@@ -39,12 +47,12 @@ export function sanitizePlayerUsername(raw?: string | null) {
   return name;
 }
 
-export async function lookupPlayerNames(
+export async function lookupPlayerProfiles(
   values: Array<string | number | null | undefined>
-): Promise<Map<number, string>> {
-  const names = new Map<number, string>();
+): Promise<Map<number, PlayerLookupProfile>> {
+  const profiles = new Map<number, PlayerLookupProfile>();
   const apiKey = getPlayerLookupKey();
-  if (!apiKey) return names;
+  if (!apiKey) return profiles;
 
   const ids: number[] = [];
   const seen = new Set<number>();
@@ -54,7 +62,7 @@ export async function lookupPlayerNames(
     seen.add(id);
     ids.push(id);
   }
-  if (!ids.length) return names;
+  if (!ids.length) return profiles;
 
   try {
     for (let offset = 0; offset < ids.length; offset += LOOKUP_LIMIT) {
@@ -82,14 +90,27 @@ export async function lookupPlayerNames(
 
       for (const player of data.players ?? []) {
         const id = parseFiveMId(player.id);
-        const username = sanitizePlayerUsername(player.username);
-        if (id == null || !username) continue;
-        names.set(id, username);
+        if (id == null) continue;
+        profiles.set(id, {
+          id,
+          username: sanitizePlayerUsername(player.username),
+          discordId: extractDiscordId(player),
+        });
       }
     }
   } catch (error) {
     console.error("player lookup:", error);
   }
 
+  return profiles;
+}
+
+export async function lookupPlayerNames(
+  values: Array<string | number | null | undefined>
+): Promise<Map<number, string>> {
+  const names = new Map<number, string>();
+  for (const profile of (await lookupPlayerProfiles(values)).values()) {
+    if (profile.username) names.set(profile.id, profile.username);
+  }
   return names;
 }

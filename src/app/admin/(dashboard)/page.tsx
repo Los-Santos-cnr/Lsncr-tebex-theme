@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { CardBody } from "@/components/ui/Card";
+import { TopSupporterSync } from "@/components/admin/TopSupporterSync";
 import { formatPrice } from "@/lib/format";
 import {
   getStoreInformation,
@@ -89,6 +90,8 @@ export default async function AdminDashboard() {
           </div>
         </div>
       )}
+
+      <TopSupporterSync />
 
       {configured && !apiError ? (
         <section className="lscnr-panel rounded-md">

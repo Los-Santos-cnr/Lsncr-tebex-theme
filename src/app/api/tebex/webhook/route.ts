@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { orders } from "../../../../../drizzle/schema";
 import { db, ensureOrdersTable, isDatabaseConfigured } from "@/lib/db";
+import { identitiesFromTebexWebhook, syncTopSupporterForIdentities } from "@/lib/top-supporter-role";
 
 function verifyWebhookSignature(body: string, signature: string | null) {
   const secret = process.env.TEBEX_WEBHOOK_SECRET?.trim();
@@ -15,16 +16,37 @@ function verifyWebhookSignature(body: string, signature: string | null) {
   return expected === signature || signature === secret;
 }
 
+function asRecord(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function asText(value: unknown) {
+  if (value == null || typeof value === "object") return null;
+  const text = String(value).trim();
+  return text || null;
+}
+
+function moneyFrom(value: unknown) {
+  if (typeof value === "number" || typeof value === "string") return String(value);
+  const record = asRecord(value);
+  if (record.amount != null) return String(record.amount);
+  return "0";
+}
+
+function currencyFrom(subject: Record<string, unknown>) {
+  const price = asRecord(subject.price);
+  const paid = asRecord(subject.price_paid);
+  return asText(price.currency) ?? asText(paid.currency) ?? asText(subject.currency) ?? "USD";
+}
+
 export async function POST(request: Request) {
   const rawBody = await request.text();
   const signature = request.headers.get("x-signature");
 
   if (!verifyWebhookSignature(rawBody, signature)) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-  }
-
-  if (!isDatabaseConfigured()) {
-    return NextResponse.json({ ok: true, stored: false });
   }
 
   let payload: Record<string, unknown>;
@@ -35,11 +57,18 @@ export async function POST(request: Request) {
   }
 
   const type = String(payload.type ?? "");
-  if (!type.includes("payment") && !type.includes("completed")) {
+  if (type === "validation.webhook") {
+    return NextResponse.json({ id: payload.id });
+  }
+
+  const paymentEvent = type.includes("payment");
+  if (!paymentEvent) {
     return NextResponse.json({ ok: true, ignored: true });
   }
 
-  const subject = (payload.subject ?? payload.data ?? payload) as Record<string, unknown>;
+  const subject = asRecord(payload.subject ?? payload.data ?? payload);
+  const customer = asRecord(subject.customer);
+  const username = asRecord(customer.username ?? subject.username);
   const transactionId = String(
     subject.transaction_id ?? subject.id ?? payload.id ?? `tx-${Date.now()}`
   );
@@ -57,27 +86,36 @@ export async function POST(request: Request) {
     qty: Number(p.quantity ?? p.qty ?? 1),
   }));
 
-  await ensureOrdersTable();
-
-  try {
-    await db
-      .insert(orders)
-      .values({
-        tebexTransactionId: transactionId,
-        usernameId: subject.username_id ? String(subject.username_id) : null,
-        username: subject.username ? String(subject.username) : null,
-        email: subject.email ? String(subject.email) : null,
-        currency: String(subject.currency ?? "USD"),
-        total: String(subject.price ?? subject.total ?? subject.amount ?? 0),
-        status: String(subject.status ?? "complete"),
-        packages,
-        rawPayload: payload,
-      })
-      .onConflictDoNothing();
-  } catch (error) {
-    console.error("Webhook store error:", error);
-    return NextResponse.json({ error: "Failed to store order" }, { status: 500 });
+  let stored = false;
+  if (isDatabaseConfigured()) {
+    await ensureOrdersTable();
+    try {
+      await db
+        .insert(orders)
+        .values({
+          tebexTransactionId: transactionId,
+          usernameId: asText(subject.username_id ?? username.id),
+          username: asText(username.username ?? subject.username),
+          email: asText(subject.email ?? customer.email),
+          currency: currencyFrom(subject),
+          total: moneyFrom(subject.price_paid ?? subject.price ?? subject.total ?? subject.amount),
+          status: asText(asRecord(subject.status).description) ?? asText(subject.status) ?? "complete",
+          packages,
+          rawPayload: payload,
+        })
+        .onConflictDoNothing();
+      stored = true;
+    } catch (error) {
+      console.error("Webhook store error:", error);
+      return NextResponse.json({ error: "Failed to store order" }, { status: 500 });
+    }
   }
 
-  return NextResponse.json({ ok: true, stored: true });
+  try {
+    await syncTopSupporterForIdentities(identitiesFromTebexWebhook(payload));
+  } catch (error) {
+    console.error("top supporter webhook:", error);
+  }
+
+  return NextResponse.json({ ok: true, stored });
 }

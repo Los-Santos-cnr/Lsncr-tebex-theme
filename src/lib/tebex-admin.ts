@@ -316,6 +316,54 @@ function paymentsFromPaged(payload: TebexPayment[] | TebexPaymentsPaged | null) 
   return { payments, lastPage: Number.isFinite(lastPage) && lastPage > 0 ? lastPage : 1 };
 }
 
+/** All complete-or-not payments dated on/after `since`, newest first. Uncached for role sync. */
+export async function listPaymentsSince(since: Date, maxPages = 160) {
+  const cutoff = since.getTime();
+  const first = await pluginFetch<TebexPayment[] | TebexPaymentsPaged>("/payments?paged=1&page=1", {
+    revalidate: false,
+  });
+  const parsed = paymentsFromPaged(first);
+  const lastPage = Math.min(parsed.lastPage, maxPages);
+  const payments = [...parsed.payments];
+  let reachedCutoff = parsed.payments.some((payment) => {
+    const time = paymentTimeMs(payment.date);
+    return Boolean(time) && time < cutoff;
+  });
+
+  const batchSize = 5;
+  for (let page = 2; page <= lastPage && !reachedCutoff; page += batchSize) {
+    const pages = Array.from(
+      { length: Math.min(batchSize, lastPage - page + 1) },
+      (_, index) => page + index
+    );
+    const batch = await Promise.all(
+      pages.map((pageNumber) =>
+        pluginFetch<TebexPayment[] | TebexPaymentsPaged>(`/payments?paged=1&page=${pageNumber}`, {
+          revalidate: false,
+        }).catch(() => null)
+      )
+    );
+    for (const payload of batch) {
+      for (const payment of paymentsFromPaged(payload).payments) {
+        payments.push(payment);
+        const time = paymentTimeMs(payment.date);
+        if (time && time < cutoff) reachedCutoff = true;
+      }
+    }
+  }
+
+  return payments.filter((payment) => {
+    const time = paymentTimeMs(payment.date);
+    return !time || time >= cutoff;
+  });
+}
+
+function paymentTimeMs(value?: string | null) {
+  if (!value) return 0;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 /** Cached history used to rank supporters. Caps pages so the page stays fast. */
 export async function listPaymentsHistory(maxPages = 40) {
   try {

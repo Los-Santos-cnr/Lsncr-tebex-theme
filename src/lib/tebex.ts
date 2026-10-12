@@ -339,9 +339,16 @@ export async function getSidebarRecentPayments(): Promise<TebexSidebarPayment[]>
   return module?.data?.payments ?? [];
 }
 
-export async function createBasket(): Promise<TebexBasket> {
+export async function createBasket(options?: { discordId?: string | null }): Promise<TebexBasket> {
   const token = getPublicToken();
   const siteUrl = getSiteUrl();
+  const discordId = options?.discordId?.trim();
+  const body: Record<string, unknown> = {
+    complete_url: `${siteUrl}/checkout/complete`,
+    cancel_url: `${siteUrl}/checkout/cancel`,
+    complete_auto_redirect: true,
+  };
+  if (discordId) body.custom = { discord_id: discordId };
 
   const res = await tebexFetch<TebexApiResponse<TebexBasket>>(
     `/accounts/${token}/baskets`,
@@ -349,11 +356,7 @@ export async function createBasket(): Promise<TebexBasket> {
       method: "POST",
       auth: true,
       revalidate: false,
-      body: JSON.stringify({
-        complete_url: `${siteUrl}/checkout/complete`,
-        cancel_url: `${siteUrl}/checkout/cancel`,
-        complete_auto_redirect: true,
-      }),
+      body: JSON.stringify(body),
     }
   );
 
@@ -387,6 +390,9 @@ export async function addPackageToBasket(
   }
   if (options?.variable_data && Object.keys(options.variable_data).length) {
     body.variable_data = options.variable_data;
+    if (options.variable_data.discord_id) {
+      body.custom = { discord_id: options.variable_data.discord_id };
+    }
   }
 
   const res = await tebexFetch<{ data: TebexBasket }>(
