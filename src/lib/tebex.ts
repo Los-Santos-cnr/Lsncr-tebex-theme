@@ -7,7 +7,7 @@ import type {
   TebexPackage,
   TebexPackageOption,
 } from "./tebex-types";
-import { applySaleToPackage, applySalesToCategories } from "./package-sales";
+import { applySaleToPackage, applySalesToCategories, packageSalePercent } from "./package-sales";
 import { isGiftcardName } from "./package-kind";
 import { getSiteUrl } from "./site";
 
@@ -302,16 +302,7 @@ export async function getCatalogSaleBanner() {
   const onSale = packages.filter((pkg) => pkg.sale?.active || (pkg.discount ?? 0) > 0);
   if (!onSale.length) return "";
 
-  const percents = onSale
-    .map((pkg) => {
-      if (pkg.sale?.discount && pkg.sale.discount > 0 && pkg.sale.discount <= 100) return pkg.sale.discount;
-      if (pkg.discount > 0 && pkg.discount <= 100) return Math.round(pkg.discount);
-      if (pkg.base_price > 0 && pkg.total_price < pkg.base_price) {
-        return Math.round((1 - pkg.total_price / pkg.base_price) * 100);
-      }
-      return 0;
-    })
-    .filter((value) => value > 0);
+  const percents = onSale.map((pkg) => packageSalePercent(pkg)).filter((value) => value > 0);
 
   const unique = [...new Set(percents)].sort((a, b) => b - a);
   if (unique.length === 1) return `Sale · ${unique[0]}% off`;

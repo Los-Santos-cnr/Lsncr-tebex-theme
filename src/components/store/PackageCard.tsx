@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
 import { Price } from "@/components/store/Price";
+import { packageSalePercent } from "@/lib/package-sales";
 import { packageHref } from "@/lib/tebex";
 import type { TebexPackage } from "@/lib/tebex-types";
 import { addToCart, useCartStore } from "@/stores/useCartStore";
@@ -24,7 +25,7 @@ export function PackageCard({
   const [adding, setAdding] = useState(false);
   const inCart = useCartStore((s) => s.localItems.some((item) => item.packageId === pkg.id));
   const onSale = (pkg.discount ?? 0) > 0 || Boolean(pkg.sale?.active);
-  const salePercent = pkg.sale?.discount || pkg.discount || 0;
+  const salePercent = packageSalePercent(pkg);
   const href = packageHref(pkg);
 
   function handleAdd(event: MouseEvent) {

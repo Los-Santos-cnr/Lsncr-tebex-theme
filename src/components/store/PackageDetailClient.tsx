@@ -15,6 +15,7 @@ import {
   bulkPercentForQuantity,
   packageOffersBulkDeals,
 } from "@/lib/bulk-deals";
+import { packageSalePercent } from "@/lib/package-sales";
 import { packageHref } from "@/lib/tebex";
 import type { TebexPackage } from "@/lib/tebex-types";
 import { addToCart } from "@/stores/useCartStore";
@@ -30,7 +31,7 @@ export function PackageDetailClient({
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(false);
   const onSale = (pkg.discount ?? 0) > 0 || Boolean(pkg.sale?.active);
-  const salePercent = pkg.sale?.discount || pkg.discount || 0;
+  const salePercent = packageSalePercent(pkg);
   const offersBulk = packageOffersBulkDeals(pkg);
   const bulkPercent = offersBulk ? bulkPercentForQuantity(quantity) : 0;
   const displayTotal = bulkLineTotal(pkg.total_price, quantity, bulkPercent);
